@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import GHC.Generics
 import Network.HTTP.Req
 
+-- | TODO: Exceptions are not actually wrapped in this right now
 data PokeException
   = PokeException Text
   | PokeHttpException HttpException
@@ -48,7 +49,7 @@ pokemon name = do
 data Pokemon = Pokemon
   { pokemonId :: Int,
     pokemonName :: Text,
-    pokemonBaseExperience :: Int,
+    pokemonBaseExperience :: Maybe Int,
     pokemonHeight :: Int,
     pokemonIsDefault :: Bool,
     pokemonOrder :: Int,
@@ -156,11 +157,11 @@ instance FromJSON PokemonStat where
 
 data PokemonSprites = PokemonSprites
   { psFrontDefault :: Text,
-    psFrontShiny :: Text,
+    psFrontShiny :: Maybe Text, -- ^ Not implemented for Gen 9
     psFrontFemale :: Maybe Text,
     psFrontShinyFemale :: Maybe Text,
-    psBackDefault :: Text,
-    psBackShiny :: Text,
+    psBackDefault :: Maybe Text, -- ^ Not implemented for Gen 9
+    psBackShiny :: Maybe Text, -- ^ Not implemented for Gen 9
     psBackFemale :: Maybe Text,
     psBackShinyFemale :: Maybe Text
   }

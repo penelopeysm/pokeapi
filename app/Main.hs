@@ -18,4 +18,4 @@ getHA p = do
 
 main :: IO ()
 main = do
-  mapM_ (getHA >=> print) ["Azumarill", "Piplup", "Shaymin-Land", "Togekiss", "Togepi", "Whimsicott"]
+  mapM_ (getHA >=> print) ["Tatsugiri"]
