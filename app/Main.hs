@@ -6,5 +6,4 @@ import Pokeapi
 
 main :: IO ()
 main = do
-  mapM_ (getHiddenAbility >=> print) ["Togekiss"]
-  mapM_ (getAbilities >=> print) ["Togekiss"]
+  mapM_ (haSpecies >=> print) ["Togekiss", "Finizen", "Iron-Bundle", "Toxtricity"]

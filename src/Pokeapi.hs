@@ -1,21 +1,25 @@
 {-# LANGUAGE DataKinds #-}
 
 module Pokeapi
-  ( pokemon,
-    ability,
-    getAbilities,
-    getHiddenAbility,
+  ( abilities,
+    ha,
+    haSpecies,
+    engNameSpecies,
     module Pokeapi.Types,
   )
 where
 
-import Control.Exception (catch, throwIO, try)
-import Control.Monad.IO.Class (MonadIO (..))
-import Data.Aeson (eitherDecode)
+import Control.Exception (throwIO)
+import Data.List (partition)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Network.HTTP.Req
 import Pokeapi.Types
+
+tshow :: (Show a) => a -> Text
+tshow = T.pack . show
+
+terror :: Text -> IO a
+terror = error . T.unpack
 
 -- * Higher-level functions
 
@@ -24,89 +28,75 @@ import Pokeapi.Types
 -- TODO: Use a proper ADT for language
 getAbilityNameInLang :: Text -> Text -> IO (Maybe Text)
 getAbilityNameInLang abty lang = do
-  abty' <- ability abty
+  abty' <- get abty
   let names = abilityNames abty'
-  case filter (\n -> name (nameLanguage n) == lang) names of
+  case filter (\n -> narName (nameLanguage n) == lang) names of
     [] -> pure Nothing
     (n : _) -> pure $ Just (nameName n)
 
 -- | Get a list of all possible abilities of a Pokemon. The Bool indicates
 -- whether the ability is a hidden ability (True corresponds to a HA).
-getAbilities :: Text -> IO [(Text, Bool)]
-getAbilities p = do
+abilities :: Text -> IO [(Text, Bool)]
+abilities p = do
   let getEngNameAndHidden :: PokemonAbility -> IO (Maybe (Text, Bool))
       getEngNameAndHidden abty = do
-        let abilityName = name (paAbility abty)
+        let abilityName = narName (paAbility abty)
         englishName <- getAbilityNameInLang abilityName "en"
         let isHidden = paIsHidden abty
         case englishName of
-          Nothing -> throwIO $ PokeException $ "No English name found for ability '" <> abilityName <> "'. (This should not happen.)"
+          Nothing -> terror $ "No English name found for ability '" <> abilityName <> "'."
           Just n -> do
             pure $ Just (n, isHidden)
-  pkmn <- pokemon p
+  pkmn <- get p
   let abilities = pokemonAbilities pkmn
   case abilities of
     [] -> throwIO $ PokeException $ "No abilities found for Pokemon '" <> p <> "'. (This should not happen.)"
     _ -> do
       mapM
         ( \a -> do
-            let abilityName = name (paAbility a)
+            let abilityName = narName (paAbility a)
             englishName <- getAbilityNameInLang abilityName "en"
             case englishName of
-              Nothing -> throwIO $ PokeException $ "No English name found for ability '" <> name (paAbility a) <> "'. (This should not happen.)"
+              Nothing -> throwIO $ PokeException $ "No English name found for ability '" <> narName (paAbility a) <> "'. (This should not happen.)"
               Just n -> pure (n, paIsHidden a)
         )
         abilities
 
 -- | Get the hidden ability of a Pokemon, if it exists.
-getHiddenAbility :: Text -> IO (Maybe Text)
-getHiddenAbility p = do
-  pkmn <- pokemon p
-  case filter paIsHidden (pokemonAbilities pkmn) of
+ha :: Text -> IO (Maybe Text)
+ha p = do
+  abilities <- abilities p
+  let (ha, na) = partition snd abilities
+  case ha of
     [] -> pure Nothing
-    (x : _) -> do
-      let abilityName = name (paAbility x)
-      englishName <- getAbilityNameInLang abilityName "en"
-      case englishName of
-        Nothing -> throwIO $ PokeException $ "No English name found for ability '" <> abilityName <> "'."
-        Just n -> pure $ Just n
+    [(a, _)] ->
+      -- Need to check that it's not a duplicate. Some Pokemon (especially in
+      -- Gen 9) have their NAs also listed as HAs. See also
+      -- https://github.com/PokeAPI/pokeapi/issues/907
+      if a `notElem` map fst na then pure $ Just a else pure Nothing
+    _ -> terror $ "Multiple hidden abilities found for Pokemon " <> p <> ": " <> tshow ha <> "."
 
--- * Actual endpoints
+haSpecies :: Text -> IO [(Text, Maybe Text)]
+haSpecies ps = do
+  species <- get ps
+  case psVarieties species of
+    [] -> terror $ "No varieties found for Pokemon species '" <> ps <> "'."
+    [var] -> do
+      let name = narName (psvPokemon var)
+      ha' <- ha name
+      pure [(name, ha')]
+    vars ->
+      mapM
+        ( \var -> do
+            let name = narName (psvPokemon var)
+            ha' <- ha name
+            pure (name, ha')
+        )
+        vars
 
---
--- TODO: Caching. How do we do this?
-
-api :: Url 'Https
-api = https "pokeapi.co" /: "api" /: "v2"
-
-ua :: Option 'Https
-ua = header "user-agent" "pokeapi-haskell v0.1.0.0 github:penelopeysm/pokeapi"
-
-pokemon :: Text -> IO Pokemon
-pokemon name = do
-  body <- runReq' $ do
-    let uri = api /: "pokemon" /: T.toLower name
-    resp <- req GET uri NoReqBody lbsResponse ua
-    pure (responseBody resp)
-  case eitherDecode body of
-    Left err -> error err
-    Right pokemon -> return pokemon
-
-ability :: Text -> IO Ability
-ability name = do
-  body <- runReq' $ do
-    let uri = api /: "ability" /: T.toLower name
-    resp <- req GET uri NoReqBody lbsResponse ua
-    pure (responseBody resp)
-  case eitherDecode body of
-    Left err -> error err
-    Right ability -> return ability
-
--- | Run a Req action, catching any HTTP exceptions and rethrowing them as
--- 'PokeHttpException's.
-runReq' :: (MonadIO m) => Req a -> m a
-runReq' req =
-  liftIO $
-    catch
-      (runReq defaultHttpConfig req)
-      (\(e :: HttpException) -> throwIO (PokeHttpException e))
+engNameSpecies :: Text -> IO Text
+engNameSpecies ps = do
+  species <- get ps
+  case filter (\n -> narName (nameLanguage n) == "en") (psNames species) of
+    [] -> terror $ "No English name found for Pokemon species '" <> ps <> "'."
+    (n : _) -> pure $ nameName n
