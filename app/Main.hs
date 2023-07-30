@@ -2,11 +2,14 @@
 
 module Main where
 
-import Control.Monad ((>=>))
+import Control.Monad (forM_)
 import Data.Text (Text)
+import qualified Data.Text.IO as T
 import Pokeapi
 
 main :: IO ()
 main = do
-  mapM_ (haSpecies >=> print) ["Togekiss", "Finizen", "Iron-Bundle", "Toxtricity"]
-  gets @Pokemon (Just 100000) Nothing >>= mapM_ print
+  resourceList <- gets @Pokemon (Just 50) Nothing
+  forM_ resourceList $ \res -> do
+    pkmn <- resolve res
+    T.putStrLn $ pokemonName pkmn

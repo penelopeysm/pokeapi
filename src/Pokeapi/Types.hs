@@ -1,7 +1,251 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
-module Pokeapi.Types where
+module Pokeapi.Types
+  ( PokeException (..),
+    PokeApi (get),
+    PokeApiResource (gets),
+
+    -- * Berries
+
+    -- ** Berries
+    Berry (..),
+    BerryFlavorMap (..),
+
+    -- ** Berry Firmnesses
+    BerryFirmness (..),
+
+    -- ** Berry Flavors
+    BerryFlavor (..),
+    FlavorBerryMap (..),
+
+    -- * Contests
+
+    -- ** Contest Types
+    ContestType (..),
+    ContestName (..),
+
+    -- ** Contest Effects
+    ContestEffect (..),
+
+    -- ** Super Contest Effects
+    SuperContestEffect (..),
+
+    -- * Encounters
+
+    -- ** Encounter Methods
+    EncounterMethod (..),
+
+    -- ** Encounter Conditions
+    EncounterCondition (..),
+
+    -- ** Encounter Condition Values
+    EncounterConditionValue (..),
+
+    -- * Evolution
+
+    -- ** Evolution Chains
+    EvolutionChain (..),
+    ChainLink (..),
+    EvolutionDetail (..),
+
+    -- ** Evolution Triggers
+    EvolutionTrigger (..),
+
+    -- * Games
+
+    -- ** Generations
+    Generation (..),
+
+    -- ** Pokedexes
+    Pokedex (..),
+    PokemonEntry (..),
+
+    -- ** Versions
+    Version (..),
+
+    -- ** Version Groups
+    VersionGroup (..),
+
+    -- * Items
+
+    -- ** Items
+    Item (..),
+    ItemSprites (..),
+    ItemHolderPokemon (..),
+    ItemHolderPokemonVersionDetail (..),
+
+    -- ** Item Attributes
+    ItemAttribute (..),
+
+    -- ** Item Categories
+    ItemCategory (..),
+
+    -- ** Item Fling Effects
+    ItemFlingEffect (..),
+
+    -- ** Item Pockets
+    ItemPocket (..),
+
+    -- * Locations
+
+    -- ** Locations
+    Location (..),
+
+    -- ** Location Areas
+    LocationArea (..),
+    EncounterMethodRate (..),
+    EncounterVersionDetails (..),
+    PokemonEncounter (..),
+
+    -- ** Pal Park Areas
+    PalParkArea (..),
+    PalParkEncounterSpecies (..),
+
+    -- ** Regions
+    Region (..),
+
+    -- * Machines
+    Machine (..),
+
+    -- * Moves
+
+    -- ** Moves
+    Move (..),
+    ContestComboSets (..),
+    ContestComboDetail (..),
+    MoveFlavorText (..),
+    MoveMetaData (..),
+    MoveStatChange (..),
+    PastMoveStatValues (..),
+
+    -- ** Move Ailments
+    MoveAilment (..),
+
+    -- ** Move Battle Styles
+    MoveBattleStyle (..),
+
+    -- ** Move Categories
+    MoveCategory (..),
+
+    -- ** Move Damage Classes
+    MoveDamageClass (..),
+
+    -- ** Move Learn Methods
+    MoveLearnMethod (..),
+
+    -- ** Move Targets
+    MoveTarget (..),
+
+    -- * Pokemon
+
+    -- ** Abilities
+    Ability (..),
+    AbilityEffectChange (..),
+    AbilityFlavorText (..),
+    AbilityPokemon (..),
+
+    -- ** Characteristics
+    Characteristic (..),
+
+    -- ** Egg Groups
+    EggGroup (..),
+
+    -- ** Genders
+    Gender (..),
+    PokemonSpeciesGender (..),
+
+    -- ** Growth Rates
+    GrowthRate (..),
+    GrowthRateExperienceLevel (..),
+
+    -- ** Natures
+    Nature (..),
+    NatureStatChange (..),
+    MoveBattleStylePreference (..),
+
+    -- ** Pokeathlon Stats
+    PokeathlonStat (..),
+    NaturePokeathlonStatAffectSets (..),
+    NaturePokeathlonStatAffect (..),
+
+    -- ** Pokemon
+    Pokemon (..),
+    PokemonAbility (..),
+    PokemonType (..),
+    PokemonFormType (..),
+    PokemonTypePast (..),
+    PokemonHeldItem (..),
+    PokemonHeldItemVersion (..),
+    PokemonMove (..),
+    PokemonMoveVersion (..),
+    PokemonStat (..),
+    PokemonSprites (..),
+
+    -- ** Pokemon Location Areas
+    PokemonLocationArea (..),
+    LocationAreaEncounter (..),
+
+    -- ** Pokemon Colors
+    PokemonColor (..),
+
+    -- ** Pokemon Forms
+    PokemonForm (..),
+    PokemonFormSprites (..),
+
+    -- ** Pokemon Habitats
+    PokemonHabitat (..),
+
+    -- ** Pokemon Shapes
+    PokemonShape (..),
+
+    -- ** Pokemon Species
+    PokemonSpecies (..),
+    Genus (..),
+    PokemonSpeciesDexEntry (..),
+    PalParkEncounterArea (..),
+    PokemonSpeciesVariety (..),
+
+    -- ** Stats
+    Stat (..),
+    MoveStatAffectSets (..),
+    MoveStatAffect (..),
+    NatureStatAffectSets (..),
+
+    -- ** Types
+    Type (..),
+    TypePokemon (..),
+    TypeRelations (..),
+    TypeRelationsPast (..),
+
+    -- * Utility
+
+    -- ** Languages
+    Language (..),
+
+    -- ** API Resources
+    NamedAPIResource (..),
+    NamedAPIResourceList (..),
+    APIResource (..),
+    APIResourceList (..),
+    APIResourceType (..),
+    APIListType (..),
+
+    -- ** Common Models
+    Description (..),
+    Effect (..),
+    Encounter (..),
+    FlavorText (..),
+    GenerationGameIndex (..),
+    MachineVersionDetail (..),
+    Name (..),
+    VerboseEffect (..),
+    VersionEncounterDetail (..),
+    VersionGameIndex (..),
+    VersionGroupFlavorText (..),
+  )
+where
 
 import Control.Exception (Exception (..), catch, throwIO, try)
 import Control.Monad.IO.Class (MonadIO (..))
@@ -14,6 +258,7 @@ import Data.Maybe (fromJust)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import Data.Void (Void)
 import GHC.Generics
 import Network.HTTP.Req
 import Text.URI (mkURI)
@@ -59,15 +304,11 @@ lbsToText = T.decodeUtf8 . BS.concat . LBS.toChunks
 -- a wrapped 'PokeJsonException'. Takes a URL as an extra parameter, which is
 -- used in the exception message.
 decodeBody' :: (FromJSON a) => Url 'Https -> LBS.ByteString -> IO a
-decodeBody' uri body = case eitherDecode body of
-  Left err -> throwIO $ PokeJsonException $ T.pack err <> " when accessing URL: " <> T.pack (show uri)
+decodeBody' url body = case eitherDecode body of
+  Left err -> throwIO $ PokeJsonException $ T.pack err <> " when accessing URL: " <> renderUrl url
   Right res -> pure res
 
--- | Extract the last component of a URL.
-getLastUrlComponent :: Text -> Text
-getLastUrlComponent = last . T.splitOn "/" . T.dropWhileEnd (== '/')
-
-class (FromJSON a) => PokeApiResource a where
+class (FromJSON a) => PokeApi a where
   -- | Retrieve an instance of the resource from the URL.
   getFromUrl' :: Text -> IO a
   getFromUrl' u = do
@@ -84,19 +325,27 @@ class (FromJSON a) => PokeApiResource a where
       pure (responseBody resp)
     decodeBody' url body
 
+  -- | Retrieve an instance of the resource from the identifier (either a
+  -- numeric ID or a name).
+  get :: Text -> IO a
+
+class
+  (PokeApi a, FromJSON (t a), FromJSON (tlist a), APIListType tlist t) =>
+  PokeApiResource a tlist t
+    | a -> tlist t
+  where
   -- | Retrieve a list of resources from the URL.
-  getsFromUrl :: Maybe Int -> Maybe Int -> Url 'Https -> IO [NamedAPIResource a]
+  getsFromUrl :: Maybe Int -> Maybe Int -> Url 'Https -> IO [t a]
   getsFromUrl lim off url = do
     let limitHeader = maybe mempty ("limit" =:) lim
         offsetHeader = maybe mempty ("offset" =:) off
     body <- runReq' $ do
       resp <- req GET url NoReqBody lbsResponse (ua <> limitHeader <> offsetHeader)
       pure (responseBody resp)
-    narlResults <$> decodeBody' url body
-
-  -- | Retrieve an instance of the resource from the identifier (either a
-  -- numeric ID or a name).
-  get :: Text -> IO a
+    -- Need type annotation here to specify that list has the specific tlist
+    -- given in the instance definition
+    (list :: tlist a) <- decodeBody' url body
+    pure $ results list
 
   -- | Retrieve a list of resources.
   gets ::
@@ -104,8 +353,8 @@ class (FromJSON a) => PokeApiResource a where
     Maybe Int ->
     -- | Offset (i.e. the index of the first resource to return). Defaults to 0.
     Maybe Int ->
-    -- | Returned resources (in the form of 'NamedAPIResource's). To retrieve
-    -- the full data for each resource, you can do:
+    -- | Returned resources. To retrieve the full data for each resource, you
+    -- can do:
     --
     --     namedResources <- gets 200 0  -- namedResources :: [NamedAPIResource a]
     --     resources <- mapM resolve namedResources -- resources :: [a]
@@ -114,7 +363,7 @@ class (FromJSON a) => PokeApiResource a where
     -- may be slow. You should consider introducing a rate limit yourself.
     --
     -- To obtain a list of all resources, pass a very large number as the limit.
-    IO [NamedAPIResource a]
+    IO [t a]
 
 -- * Berries
 
@@ -139,8 +388,10 @@ data Berry = Berry
 instance FromJSON Berry where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 5}
 
-instance PokeApiResource Berry where
+instance PokeApi Berry where
   get iden = getFromUrl $ apiv2 /: "berry" /: T.toLower iden
+
+instance PokeApiResource Berry NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "berry"
 
 data BerryFlavorMap = BerryFlavorMap
@@ -152,7 +403,7 @@ data BerryFlavorMap = BerryFlavorMap
 instance FromJSON BerryFlavorMap where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
--- * Berry Firmnesses
+-- ** Berry Firmnesses
 
 data BerryFirmness = BerryFirmness
   { bfmId :: Int,
@@ -165,11 +416,13 @@ data BerryFirmness = BerryFirmness
 instance FromJSON BerryFirmness where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource BerryFirmness where
+instance PokeApi BerryFirmness where
   get iden = getFromUrl $ apiv2 /: "berry-firmness" /: T.toLower iden
+
+instance PokeApiResource BerryFirmness NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "berry-firmness"
 
--- * Berry Flavors
+-- ** Berry Flavors
 
 data BerryFlavor = BerryFlavor
   { bfId :: Int,
@@ -183,8 +436,10 @@ data BerryFlavor = BerryFlavor
 instance FromJSON BerryFlavor where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource BerryFlavor where
+instance PokeApi BerryFlavor where
   get iden = getFromUrl $ apiv2 /: "berry-flavor" /: T.toLower iden
+
+instance PokeApiResource BerryFlavor NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "berry-flavor"
 
 data FlavorBerryMap = FlavorBerryMap
@@ -211,8 +466,10 @@ data ContestType = ContestType
 instance FromJSON ContestType where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource ContestType where
+instance PokeApi ContestType where
   get iden = getFromUrl $ apiv2 /: "contest-type" /: T.toLower iden
+
+instance PokeApiResource ContestType NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "contest-type"
 
 data ContestName = ContestName
@@ -239,8 +496,10 @@ data ContestEffect = ContestEffect
 instance FromJSON ContestEffect where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource ContestEffect where
+instance PokeApi ContestEffect where
   get iden = getFromUrl $ apiv2 /: "contest-effect" /: T.toLower iden
+
+instance PokeApiResource ContestEffect APIResourceList APIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "contest-effect"
 
 -- ** Super Contest Effects
@@ -256,8 +515,10 @@ data SuperContestEffect = SuperContestEffect
 instance FromJSON SuperContestEffect where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource SuperContestEffect where
+instance PokeApi SuperContestEffect where
   get iden = getFromUrl $ apiv2 /: "super-contest-effect" /: T.toLower iden
+
+instance PokeApiResource SuperContestEffect APIResourceList APIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "super-contest-effect"
 
 -- * Encounters
@@ -275,25 +536,30 @@ data EncounterMethod = EncounterMethod
 instance FromJSON EncounterMethod where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource EncounterMethod where
+instance PokeApi EncounterMethod where
   get iden = getFromUrl $ apiv2 /: "encounter-method" /: T.toLower iden
+
+instance PokeApiResource EncounterMethod NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "encounter-method"
 
 -- ** Encounter Conditions
 
+-- | Note the 'ecd' prefix for the record fields.
 data EncounterCondition = EncounterCondition
-  { ecId :: Int,
-    ecName :: Text,
-    ecNames :: [Name],
-    ecValues :: [NamedAPIResource EncounterConditionValue]
+  { ecdId :: Int,
+    ecdName :: Text,
+    ecdNames :: [Name],
+    ecdValues :: [NamedAPIResource EncounterConditionValue]
   }
   deriving (Show, Eq, Ord, Generic)
 
 instance FromJSON EncounterCondition where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource EncounterCondition where
+instance PokeApi EncounterCondition where
   get iden = getFromUrl $ apiv2 /: "encounter-condition" /: T.toLower iden
+
+instance PokeApiResource EncounterCondition NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "encounter-condition"
 
 -- ** Encounter Condition Values
@@ -309,8 +575,10 @@ data EncounterConditionValue = EncounterConditionValue
 instance FromJSON EncounterConditionValue where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource EncounterConditionValue where
+instance PokeApi EncounterConditionValue where
   get iden = getFromUrl $ apiv2 /: "encounter-condition-value" /: T.toLower iden
+
+instance PokeApiResource EncounterConditionValue NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "encounter-condition-value"
 
 -- * Evolution
@@ -318,17 +586,19 @@ instance PokeApiResource EncounterConditionValue where
 -- ** Evolution Chains
 
 data EvolutionChain = EvolutionChain
-  { echId :: Int,
-    echBabyTriggerItem :: Maybe (NamedAPIResource Item), -- Maybe verified
-    echChain :: ChainLink
+  { ecId :: Int,
+    ecBabyTriggerItem :: Maybe (NamedAPIResource Item), -- Maybe verified
+    ecChain :: ChainLink
   }
   deriving (Show, Eq, Ord, Generic)
 
 instance FromJSON EvolutionChain where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource EvolutionChain where
+instance PokeApi EvolutionChain where
   get iden = getFromUrl $ apiv2 /: "evolution-chain" /: T.toLower iden
+
+instance PokeApiResource EvolutionChain APIResourceList APIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "evolution-chain"
 
 data ChainLink = ChainLink
@@ -380,8 +650,10 @@ data EvolutionTrigger = EvolutionTrigger
 instance FromJSON EvolutionTrigger where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource EvolutionTrigger where
+instance PokeApi EvolutionTrigger where
   get iden = getFromUrl $ apiv2 /: "evolution-trigger" /: T.toLower iden
+
+instance PokeApiResource EvolutionTrigger NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "evolution-trigger"
 
 -- * Games
@@ -404,8 +676,10 @@ data Generation = Generation
 instance FromJSON Generation where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 10}
 
-instance PokeApiResource Generation where
+instance PokeApi Generation where
   get iden = getFromUrl $ apiv2 /: "generation" /: T.toLower iden
+
+instance PokeApiResource Generation NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "generation"
 
 -- ** Pokedexes
@@ -417,7 +691,8 @@ data Pokedex = Pokedex
     pokedexDescriptions :: [Description],
     pokedexNames :: [Name],
     pokedexPokemonEntries :: [PokemonEntry],
-    pokedexRegion :: NamedAPIResource Region,
+    -- | @Nothing@ for Pokemon Conquest gallery
+    pokedexRegion :: Maybe (NamedAPIResource Region),
     pokedexVersionGroups :: [NamedAPIResource VersionGroup]
   }
   deriving (Show, Eq, Ord, Generic)
@@ -425,8 +700,10 @@ data Pokedex = Pokedex
 instance FromJSON Pokedex where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 7}
 
-instance PokeApiResource Pokedex where
+instance PokeApi Pokedex where
   get iden = getFromUrl $ apiv2 /: "pokedex" /: T.toLower iden
+
+instance PokeApiResource Pokedex NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pokedex"
 
 data PokemonEntry = PokemonEntry
@@ -451,8 +728,10 @@ data Version = Version
 instance FromJSON Version where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 7}
 
-instance PokeApiResource Version where
+instance PokeApi Version where
   get iden = getFromUrl $ apiv2 /: "version" /: T.toLower iden
+
+instance PokeApiResource Version NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "version"
 
 -- ** Version Groups
@@ -472,8 +751,10 @@ data VersionGroup = VersionGroup
 instance FromJSON VersionGroup where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource VersionGroup where
+instance PokeApi VersionGroup where
   get iden = getFromUrl $ apiv2 /: "version-group" /: T.toLower iden
+
+instance PokeApiResource VersionGroup NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "version-group"
 
 -- * Items
@@ -484,8 +765,8 @@ data Item = Item
   { itemId :: Int,
     itemName :: Text,
     itemCost :: Int,
-    itemFlingPower :: Int,
-    itemFlingEffect :: NamedAPIResource ItemFlingEffect,
+    itemFlingPower :: Maybe Int, -- verified
+    itemFlingEffect :: Maybe (NamedAPIResource ItemFlingEffect), -- verified
     itemAttributes :: [NamedAPIResource ItemAttribute],
     itemCategory :: NamedAPIResource ItemCategory,
     itemEffectEntries :: [VerboseEffect],
@@ -494,7 +775,7 @@ data Item = Item
     itemNames :: [Name],
     itemSprites :: ItemSprites,
     itemHeldByPokemon :: [ItemHolderPokemon],
-    itemBabyTriggerFor :: APIResource EvolutionChain,
+    itemBabyTriggerFor :: Maybe (APIResource EvolutionChain),
     itemMachines :: [MachineVersionDetail]
   }
   deriving (Show, Eq, Ord, Generic)
@@ -502,12 +783,14 @@ data Item = Item
 instance FromJSON Item where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 4}
 
-instance PokeApiResource Item where
+instance PokeApi Item where
   get iden = getFromUrl $ apiv2 /: "item" /: T.toLower iden
+
+instance PokeApiResource Item NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "item"
 
 newtype ItemSprites = ItemSprites
-  { isDefault :: Text
+  { isDefault :: Maybe Text
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -546,8 +829,10 @@ data ItemAttribute = ItemAttribute
 instance FromJSON ItemAttribute where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource ItemAttribute where
+instance PokeApi ItemAttribute where
   get iden = getFromUrl $ apiv2 /: "item-attribute" /: T.toLower iden
+
+instance PokeApiResource ItemAttribute NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "item-attribute"
 
 -- ** Item Categories
@@ -564,8 +849,10 @@ data ItemCategory = ItemCategory
 instance FromJSON ItemCategory where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource ItemCategory where
+instance PokeApi ItemCategory where
   get iden = getFromUrl $ apiv2 /: "item-category" /: T.toLower iden
+
+instance PokeApiResource ItemCategory NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "item-category"
 
 -- ** Item Fling Effects
@@ -581,8 +868,10 @@ data ItemFlingEffect = ItemFlingEffect
 instance FromJSON ItemFlingEffect where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource ItemFlingEffect where
+instance PokeApi ItemFlingEffect where
   get iden = getFromUrl $ apiv2 /: "item-fling-effect" /: T.toLower iden
+
+instance PokeApiResource ItemFlingEffect NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "item-fling-effect"
 
 -- ** Item Pockets
@@ -598,8 +887,10 @@ data ItemPocket = ItemPocket
 instance FromJSON ItemPocket where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource ItemPocket where
+instance PokeApi ItemPocket where
   get iden = getFromUrl $ apiv2 /: "item-pocket" /: T.toLower iden
+
+instance PokeApiResource ItemPocket NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "item-pocket"
 
 -- * Locations
@@ -609,7 +900,7 @@ instance PokeApiResource ItemPocket where
 data Location = Location
   { locationId :: Int,
     locationName :: Text,
-    locationRegion :: NamedAPIResource Region,
+    locationRegion :: Maybe (NamedAPIResource Region), -- verified
     locationNames :: [Name],
     locationGameIndices :: [GenerationGameIndex],
     locationAreas :: [NamedAPIResource LocationArea]
@@ -619,8 +910,10 @@ data Location = Location
 instance FromJSON Location where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 8}
 
-instance PokeApiResource Location where
+instance PokeApi Location where
   get iden = getFromUrl $ apiv2 /: "location" /: T.toLower iden
+
+instance PokeApiResource Location NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "location"
 
 -- ** Location Areas
@@ -639,8 +932,10 @@ data LocationArea = LocationArea
 instance FromJSON LocationArea where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource LocationArea where
+instance PokeApi LocationArea where
   get iden = getFromUrl $ apiv2 /: "location-area" /: T.toLower iden
+
+instance PokeApiResource LocationArea NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "location-area"
 
 data EncounterMethodRate = EncounterMethodRate
@@ -683,8 +978,10 @@ data PalParkArea = PalParkArea
 instance FromJSON PalParkArea where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource PalParkArea where
+instance PokeApi PalParkArea where
   get iden = getFromUrl $ apiv2 /: "pal-park-area" /: T.toLower iden
+
+instance PokeApiResource PalParkArea NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pal-park-area"
 
 data PalParkEncounterSpecies = PalParkEncounterSpecies
@@ -704,7 +1001,8 @@ data Region = Region
     regionName :: Text,
     regionLocations :: [NamedAPIResource Location],
     regionNames :: [Name],
-    regionMainGeneration :: NamedAPIResource Generation,
+    -- | @Nothing@ for Hisui
+    regionMainGeneration :: Maybe (NamedAPIResource Generation),
     regionPokedexes :: [NamedAPIResource Pokedex],
     regionVersionGroups :: [NamedAPIResource VersionGroup]
   }
@@ -713,8 +1011,10 @@ data Region = Region
 instance FromJSON Region where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 6}
 
-instance PokeApiResource Region where
+instance PokeApi Region where
   get iden = getFromUrl $ apiv2 /: "region" /: T.toLower iden
+
+instance PokeApiResource Region NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "region"
 
 -- * Machines
@@ -730,8 +1030,10 @@ data Machine = Machine
 instance FromJSON Machine where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 7}
 
-instance PokeApiResource Machine where
+instance PokeApi Machine where
   get iden = getFromUrl $ apiv2 /: "machine" /: T.toLower iden
+
+instance PokeApiResource Machine APIResourceList APIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "machine"
 
 -- * Moves
@@ -741,14 +1043,17 @@ instance PokeApiResource Machine where
 data Move = Move
   { moveId :: Int,
     moveName :: Text,
-    moveAccuracy :: Int,
-    moveEffectChance :: Maybe Int, -- Maybe verified
-    movePp :: Int,
+    -- | @Nothing@ for moves that cannot miss
+    moveAccuracy :: Maybe Int,
+    moveEffectChance :: Maybe Int,
+    -- | @Nothing@ for Shadow moves (from XD: Gale of Darkness)
+    movePp :: Maybe Int,
     movePriority :: Int,
-    movePower :: Int,
-    moveContestCombos :: ContestComboSets,
-    moveContestType :: NamedAPIResource ContestType,
-    moveContestEffect :: APIResource ContestEffect,
+    -- | @Nothing@ for status moves
+    movePower :: Maybe Int,
+    moveContestCombos :: Maybe ContestComboSets,
+    moveContestType :: Maybe (NamedAPIResource ContestType), -- verified
+    moveContestEffect :: Maybe (APIResource ContestEffect), -- verified
     moveDamageClass :: NamedAPIResource MoveDamageClass,
     moveEffectEntries :: [VerboseEffect],
     moveEffectChanges :: [AbilityEffectChange],
@@ -756,11 +1061,11 @@ data Move = Move
     moveFlavorTextEntries :: [MoveFlavorText],
     moveGeneration :: NamedAPIResource Generation,
     moveMachines :: [MachineVersionDetail],
-    moveMeta :: MoveMetaData,
+    moveMeta :: Maybe MoveMetaData, -- verified
     moveNames :: [Name],
     movePastValues :: [PastMoveStatValues],
     moveStatChanges :: [MoveStatChange],
-    moveSuperContestEffect :: APIResource SuperContestEffect,
+    moveSuperContestEffect :: Maybe (APIResource SuperContestEffect), -- verified
     moveTarget :: NamedAPIResource MoveTarget,
     moveType :: NamedAPIResource Type
   }
@@ -769,8 +1074,10 @@ data Move = Move
 instance FromJSON Move where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 4}
 
-instance PokeApiResource Move where
+instance PokeApi Move where
   get iden = getFromUrl $ apiv2 /: "move" /: T.toLower iden
+
+instance PokeApiResource Move NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "move"
 
 data ContestComboSets = ContestComboSets
@@ -783,8 +1090,8 @@ instance FromJSON ContestComboSets where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
 data ContestComboDetail = ContestComboDetail
-  { ccdUseBefore :: [NamedAPIResource Move],
-    ccdUseAfter :: [NamedAPIResource Move]
+  { ccdUseBefore :: Maybe [NamedAPIResource Move], -- verified
+    ccdUseAfter :: Maybe [NamedAPIResource Move] -- verified
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -830,12 +1137,12 @@ instance FromJSON MoveStatChange where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
 data PastMoveStatValues = PastMoveStatValues
-  { pmsvAccuracy :: Int,
-    pmsvEffectChance :: Int,
-    pmsvPower :: Int,
-    pmsvPp :: Int,
+  { pmsvAccuracy :: Maybe Int, -- verified
+    pmsvEffectChance :: Maybe Int, -- verified
+    pmsvPower :: Maybe Int, -- verified
+    pmsvPp :: Maybe Int, -- verified
     pmsvEffectEntries :: [VerboseEffect],
-    pmsvType :: NamedAPIResource Type,
+    pmsvType :: Maybe (NamedAPIResource Type), -- verified
     pmsvVersionGroup :: NamedAPIResource VersionGroup
   }
   deriving (Show, Eq, Ord, Generic)
@@ -849,15 +1156,17 @@ data MoveAilment = MoveAilment
   { maId :: Int,
     maName :: Text,
     maMoves :: [NamedAPIResource Move],
-    maDescriptions :: [Description]
+    maNames :: [Name]
   }
   deriving (Show, Eq, Ord, Generic)
 
 instance FromJSON MoveAilment where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource MoveAilment where
+instance PokeApi MoveAilment where
   get iden = getFromUrl $ apiv2 /: "move-ailment" /: T.toLower iden
+
+instance PokeApiResource MoveAilment NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "move-ailment"
 
 -- ** Move Battle Styles
@@ -872,8 +1181,10 @@ data MoveBattleStyle = MoveBattleStyle
 instance FromJSON MoveBattleStyle where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource MoveBattleStyle where
+instance PokeApi MoveBattleStyle where
   get iden = getFromUrl $ apiv2 /: "move-battle-style" /: T.toLower iden
+
+instance PokeApiResource MoveBattleStyle NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "move-battle-style"
 
 -- ** Move Categories
@@ -889,8 +1200,10 @@ data MoveCategory = MoveCategory
 instance FromJSON MoveCategory where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource MoveCategory where
+instance PokeApi MoveCategory where
   get iden = getFromUrl $ apiv2 /: "move-category" /: T.toLower iden
+
+instance PokeApiResource MoveCategory NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "move-category"
 
 -- ** Move Damage Classes
@@ -907,8 +1220,10 @@ data MoveDamageClass = MoveDamageClass
 instance FromJSON MoveDamageClass where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource MoveDamageClass where
+instance PokeApi MoveDamageClass where
   get iden = getFromUrl $ apiv2 /: "move-damage-class" /: T.toLower iden
+
+instance PokeApiResource MoveDamageClass NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "move-damage-class"
 
 -- ** Move Learn Methods
@@ -925,8 +1240,10 @@ data MoveLearnMethod = MoveLearnMethod
 instance FromJSON MoveLearnMethod where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource MoveLearnMethod where
+instance PokeApi MoveLearnMethod where
   get iden = getFromUrl $ apiv2 /: "move-learn-method" /: T.toLower iden
+
+instance PokeApiResource MoveLearnMethod NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "move-learn-method"
 
 -- ** Move Targets
@@ -943,8 +1260,10 @@ data MoveTarget = MoveTarget
 instance FromJSON MoveTarget where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource MoveTarget where
+instance PokeApi MoveTarget where
   get iden = getFromUrl $ apiv2 /: "move-target" /: T.toLower iden
+
+instance PokeApiResource MoveTarget NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "move-target"
 
 -- * Pokemon
@@ -967,8 +1286,10 @@ data Ability = Ability
 instance FromJSON Ability where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 7}
 
-instance PokeApiResource Ability where
+instance PokeApi Ability where
   get iden = getFromUrl $ apiv2 /: "ability" /: T.toLower iden
+
+instance PokeApiResource Ability NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "ability"
 
 data AbilityEffectChange = AbilityEffectChange
@@ -1014,8 +1335,10 @@ data Characteristic = Characteristic
 instance FromJSON Characteristic where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 14}
 
-instance PokeApiResource Characteristic where
+instance PokeApi Characteristic where
   get iden = getFromUrl $ apiv2 /: "characteristic" /: T.toLower iden
+
+instance PokeApiResource Characteristic APIResourceList APIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "characteristic"
 
 -- ** Egg Groups
@@ -1031,8 +1354,10 @@ data EggGroup = EggGroup
 instance FromJSON EggGroup where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 8}
 
-instance PokeApiResource EggGroup where
+instance PokeApi EggGroup where
   get iden = getFromUrl $ apiv2 /: "egg-group" /: T.toLower iden
+
+instance PokeApiResource EggGroup NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "egg-group"
 
 -- ** Genders
@@ -1048,8 +1373,10 @@ data Gender = Gender
 instance FromJSON Gender where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 6}
 
-instance PokeApiResource Gender where
+instance PokeApi Gender where
   get iden = getFromUrl $ apiv2 /: "gender" /: T.toLower iden
+
+instance PokeApiResource Gender NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "gender"
 
 data PokemonSpeciesGender = PokemonSpeciesGender
@@ -1076,8 +1403,10 @@ data GrowthRate = GrowthRate
 instance FromJSON GrowthRate where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource GrowthRate where
+instance PokeApi GrowthRate where
   get iden = getFromUrl $ apiv2 /: "growth-rate" /: T.toLower iden
+
+instance PokeApiResource GrowthRate NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "growth-rate"
 
 data GrowthRateExperienceLevel = GrowthRateExperienceLevel
@@ -1094,10 +1423,10 @@ instance FromJSON GrowthRateExperienceLevel where
 data Nature = Nature
   { natureId :: Int,
     natureName :: Text,
-    natureDecreasedStat :: NamedAPIResource Stat,
-    natureIncreasedStat :: NamedAPIResource Stat,
-    natureHatesFlavor :: NamedAPIResource BerryFlavor,
-    natureLikesFlavor :: NamedAPIResource BerryFlavor,
+    natureDecreasedStat :: Maybe (NamedAPIResource Stat),
+    natureIncreasedStat :: Maybe (NamedAPIResource Stat),
+    natureHatesFlavor :: Maybe (NamedAPIResource BerryFlavor),
+    natureLikesFlavor :: Maybe (NamedAPIResource BerryFlavor),
     naturePokeathlonStatChanges :: [NatureStatChange],
     natureMoveBattleStylePreferences :: [MoveBattleStylePreference],
     natureNames :: [Name]
@@ -1107,8 +1436,10 @@ data Nature = Nature
 instance FromJSON Nature where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 6}
 
-instance PokeApiResource Nature where
+instance PokeApi Nature where
   get iden = getFromUrl $ apiv2 /: "nature" /: T.toLower iden
+
+instance PokeApiResource Nature NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "nature"
 
 data NatureStatChange = NatureStatChange
@@ -1143,8 +1474,10 @@ data PokeathlonStat = PokeathlonStat
 instance FromJSON PokeathlonStat where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource PokeathlonStat where
+instance PokeApi PokeathlonStat where
   get iden = getFromUrl $ apiv2 /: "pokeathlon-stat" /: T.toLower iden
+
+instance PokeApiResource PokeathlonStat NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pokeathlon-stat"
 
 data NaturePokeathlonStatAffectSets = NaturePokeathlonStatAffectSets
@@ -1170,7 +1503,7 @@ instance FromJSON NaturePokeathlonStatAffect where
 data Pokemon = Pokemon
   { pokemonId :: Int,
     pokemonName :: Text,
-    pokemonBaseExperience :: Int,
+    pokemonBaseExperience :: Maybe Int, -- verified Maybe, this is absent in Gen 9
     pokemonHeight :: Int,
     pokemonIsDefault :: Bool,
     pokemonOrder :: Int,
@@ -1192,8 +1525,10 @@ data Pokemon = Pokemon
 instance FromJSON Pokemon where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 7}
 
-instance PokeApiResource Pokemon where
+instance PokeApi Pokemon where
   get iden = getFromUrl $ apiv2 /: "pokemon" /: T.toLower iden
+
+instance PokeApiResource Pokemon NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon"
 
 data PokemonAbility = PokemonAbility
@@ -1281,19 +1616,14 @@ instance FromJSON PokemonStat where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
 data PokemonSprites = PokemonSprites
-  { psFrontDefault :: Text,
-    -- | Not implemented for Gen 9
-    psFrontShiny :: Maybe Text, -- Maybe verified
-    psFrontFemale :: Maybe Text, -- Maybe verified
-    psFrontShinyFemale :: Maybe Text, -- Maybe verified
-
-    -- | Not implemented for Gen 9
-    psBackDefault :: Maybe Text, -- Maybe verified
-
-    -- | Not implemented for Gen 9
-    psBackShiny :: Maybe Text, -- Maybe verified
-    psBackFemale :: Maybe Text, -- Maybe verified
-    psBackShinyFemale :: Maybe Text -- Maybe verified
+  { psFrontDefault :: Maybe Text, -- verified
+    psFrontShiny :: Maybe Text, -- verified
+    psFrontFemale :: Maybe Text, -- verified
+    psFrontShinyFemale :: Maybe Text, -- verified
+    psBackDefault :: Maybe Text, -- verified
+    psBackShiny :: Maybe Text, -- verified
+    psBackFemale :: Maybe Text, -- verified
+    psBackShinyFemale :: Maybe Text -- verified
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -1303,18 +1633,14 @@ instance FromJSON PokemonSprites where
 -- ** Pokemon Location Areas
 
 newtype PokemonLocationArea = PokemonLocationArea
-  {encounters :: [LocationAreaEncounter]}
+  {plaEncounters :: [LocationAreaEncounter]}
   deriving (Show, Eq, Ord, Generic)
 
 instance FromJSON PokemonLocationArea where
-  parseJSON = genericParseJSON defaultOptions
+  parseJSON o = PokemonLocationArea <$> parseJSON o
 
-instance PokeApiResource PokemonLocationArea where
+instance PokeApi PokemonLocationArea where
   get iden = getFromUrl $ apiv2 /: "pokemon" /: T.toLower iden /: "encounters"
-
-  -- TODO: How do we handle this? It feels really clunky to have to separate
-  -- this from the usual typeclass.
-  gets lim off = error "The Pokemon Location Areas endpoint does not accept a list."
 
 data LocationAreaEncounter = LocationAreaEncounter
   { laeLocationArea :: NamedAPIResource LocationArea,
@@ -1338,8 +1664,10 @@ data PokemonColor = PokemonColor
 instance FromJSON PokemonColor where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource PokemonColor where
+instance PokeApi PokemonColor where
   get iden = getFromUrl $ apiv2 /: "pokemon-color" /: T.toLower iden
+
+instance PokeApiResource PokemonColor NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-color"
 
 -- ** Pokemon Forms
@@ -1365,15 +1693,17 @@ data PokemonForm = PokemonForm
 instance FromJSON PokemonForm where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource PokemonForm where
+instance PokeApi PokemonForm where
   get iden = getFromUrl $ apiv2 /: "pokemon-form" /: T.toLower iden
+
+instance PokeApiResource PokemonForm NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-form"
 
 data PokemonFormSprites = PokemonFormSprites
-  { pfsFrontDefault :: Text,
-    pfsFrontShiny :: Text,
-    pfsBackDefault :: Text,
-    pfsBackShiny :: Text
+  { pfsFrontDefault :: Maybe Text,
+    pfsFrontShiny :: Maybe Text,
+    pfsBackDefault :: Maybe Text,
+    pfsBackShiny :: Maybe Text
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -1393,8 +1723,10 @@ data PokemonHabitat = PokemonHabitat
 instance FromJSON PokemonHabitat where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource PokemonHabitat where
+instance PokeApi PokemonHabitat where
   get iden = getFromUrl $ apiv2 /: "pokemon-habitat" /: T.toLower iden
+
+instance PokeApiResource PokemonHabitat NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-habitat"
 
 -- ** Pokemon Shapes
@@ -1411,8 +1743,10 @@ data PokemonShape = PokemonShape
 instance FromJSON PokemonShape where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
 
-instance PokeApiResource PokemonShape where
+instance PokeApi PokemonShape where
   get iden = getFromUrl $ apiv2 /: "pokemon-shape" /: T.toLower iden
+
+instance PokeApiResource PokemonShape NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-shape"
 
 data AwesomeName = AwesomeName
@@ -1432,20 +1766,22 @@ data PokemonSpecies = PokemonSpecies
     psOrder :: Int,
     psGenderRate :: Int,
     psCaptureRate :: Int,
-    psBaseHappiness :: Int,
+    -- | @Nothing@ for PLA-exclusive evolutions
+    psBaseHappiness :: Maybe Int,
     psIsBaby :: Bool,
     psIsLegendary :: Bool,
     psIsMythical :: Bool,
-    psHatchCounter :: Int,
+    -- | @Nothing@ for PLA-exclusive evolutions
+    psHatchCounter :: Maybe Int,
     psHasGenderDifferences :: Bool,
     psFormsSwitchable :: Bool,
     psGrowthRate :: NamedAPIResource GrowthRate,
     psPokedexNumbers :: [PokemonSpeciesDexEntry],
     psEggGroups :: [NamedAPIResource EggGroup],
     psColor :: NamedAPIResource PokemonColor,
-    psShape :: Maybe (NamedAPIResource PokemonShape), -- Maybe verified
+    psShape :: Maybe (NamedAPIResource PokemonShape),
     psEvolutionChain :: APIResource EvolutionChain,
-    psHabitat :: Maybe (NamedAPIResource PokemonHabitat), -- Maybe verified
+    psHabitat :: Maybe (NamedAPIResource PokemonHabitat),
     psGeneration :: NamedAPIResource Generation,
     psNames :: [Name],
     psPalParkEncounters :: [PalParkEncounterArea],
@@ -1459,8 +1795,10 @@ data PokemonSpecies = PokemonSpecies
 instance FromJSON PokemonSpecies where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
-instance PokeApiResource PokemonSpecies where
+instance PokeApi PokemonSpecies where
   get iden = getFromUrl $ apiv2 /: "pokemon-species" /: T.toLower iden
+
+instance PokeApiResource PokemonSpecies NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-species"
 
 data Genus = Genus
@@ -1518,8 +1856,10 @@ data Stat = Stat
 instance FromJSON Stat where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 4}
 
-instance PokeApiResource Stat where
+instance PokeApi Stat where
   get iden = getFromUrl $ apiv2 /: "stat" /: T.toLower iden
+
+instance PokeApiResource Stat NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "stat"
 
 data MoveStatAffectSets = MoveStatAffectSets
@@ -1558,7 +1898,8 @@ data Type = Type
     typePastDamageRelations :: [TypeRelationsPast],
     typeGameIndices :: [GenerationGameIndex],
     typeGeneration :: NamedAPIResource Generation,
-    typeMoveDamageClass :: NamedAPIResource MoveDamageClass,
+    -- | @Nothing@ for Fairy (was introduced after physical/special split), Unknown (Curse in early generations), and Shadow
+    typeMoveDamageClass :: Maybe (NamedAPIResource MoveDamageClass),
     typeNames :: [Name],
     typePokemon :: [TypePokemon],
     typeMoves :: [NamedAPIResource Move]
@@ -1568,8 +1909,10 @@ data Type = Type
 instance FromJSON Type where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 4}
 
-instance PokeApiResource Type where
+instance PokeApi Type where
   get iden = getFromUrl $ apiv2 /: "type" /: T.toLower iden
+
+instance PokeApiResource Type NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "type"
 
 data TypePokemon = TypePokemon
@@ -1620,8 +1963,10 @@ data Language = Language
 instance FromJSON Language where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 8}
 
-instance PokeApiResource Language where
+instance PokeApi Language where
   get iden = getFromUrl $ apiv2 /: "language" /: T.toLower iden
+
+instance PokeApiResource Language NamedAPIResourceList NamedAPIResource where
   gets lim off = getsFromUrl lim off $ apiv2 /: "language"
 
 -- ** (Named-)APIResources
@@ -1644,16 +1989,18 @@ instance FromJSON (APIResource a) where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
 class APIResourceType t where
-  apiResourceUrl :: t a -> Text
+  getUrl :: t a -> Text
 
-  resolve :: (PokeApiResource a) => t a -> IO a
-  resolve = getFromUrl' . apiResourceUrl
+  resolve :: (PokeApiResource a tlist t) => t a -> IO a
+  resolve = getFromUrl' . getUrl
 
 instance APIResourceType NamedAPIResource where
-  apiResourceUrl = narUrl
+  getUrl = narUrl
 
 instance APIResourceType APIResource where
-  apiResourceUrl = arUrl
+  getUrl = arUrl
+
+-- ** Lists of (Named-)APIResources (to deal with pagination)
 
 data NamedAPIResourceList a = NamedAPIResourceList
   { narlCount :: Int,
@@ -1665,6 +2012,26 @@ data NamedAPIResourceList a = NamedAPIResourceList
 
 instance FromJSON (NamedAPIResourceList a) where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 4}
+
+data APIResourceList a = APIResourceList
+  { arlCount :: Int,
+    arlNext :: Maybe Text,
+    arlPrevious :: Maybe Text,
+    arlResults :: [APIResource a]
+  }
+  deriving (Show, Eq, Ord, Generic)
+
+instance FromJSON (APIResourceList a) where
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
+
+class (APIResourceType t) => APIListType tlist t | tlist -> t where
+  results :: (FromJSON a) => tlist a -> [t a]
+
+instance APIListType NamedAPIResourceList NamedAPIResource where
+  results = narlResults
+
+instance APIListType APIResourceList APIResource where
+  results = arlResults
 
 -- ** Common Models
 
@@ -1701,7 +2068,7 @@ instance FromJSON Encounter where
 data FlavorText = FlavorText
   { ftFlavorText :: Text,
     ftLanguage :: NamedAPIResource Language,
-    ftVersion :: NamedAPIResource Version
+    ftVersion :: Maybe (NamedAPIResource Version) -- verified
   }
   deriving (Show, Eq, Ord, Generic)
 
