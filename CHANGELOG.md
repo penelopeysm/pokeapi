@@ -1,5 +1,5 @@
 # Revision history for pokeapi
 
-## 0.1.0.0 -- YYYY-mm-dd
+## 0.1.0.0 -- 2023-07-31
 
-* First version. Released on an unsuspecting world.
+* First release.
