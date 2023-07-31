@@ -8,8 +8,8 @@ import qualified Data.Text.IO as T
 
 main = do
   toge <- get "togekiss"
-  let entry = filter (\ft -> (narName $ ftLanguage ft) == "en"
-                             && (narName <$> ftVersion ft) == Just "soulsilver")
+  let entry = filter (\ft -> (name $ ftLanguage ft) == "en"
+                             && (name <$> ftVersion ft) == Just "soulsilver")
                      (psFlavorTextEntries toge)
   case entry of
        [e] -> T.putStrLn (ftFlavorText e)

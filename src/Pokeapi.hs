@@ -1,6 +1,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
 -- Module      : Pokeapi
@@ -464,7 +467,7 @@ class
 -- 'NamedAPIResource's) which are not fully resolved, but can be.
 class Resolvable t where
   -- | Get the URL pointing to a resource.
-  getUrl :: t a -> Text
+  url :: t a -> Text
 
   -- | PokeAPI often does not return completely filled-in types as part of the
   -- data, choosing instead to return @NamedAPIResource a@ or @APIResource a@.
@@ -482,7 +485,7 @@ class Resolvable t where
   --
   -- @
   -- >>> firstAbility
-  -- 'NamedAPIResource' {'narName' = "hustle", 'narUrl' = "https:\/\/pokeapi.co\/api\/v2\/ability\/55\/"}
+  -- 'NamedAPIResource' {'name' = "hustle", 'narUrl' = "https:\/\/pokeapi.co\/api\/v2\/ability\/55\/"}
   -- @
   --
   -- To get the full ability, you can use 'resolve':
@@ -494,7 +497,7 @@ class Resolvable t where
   -- Now, @hustle@ is of type 'Ability', and contains all the information you
   -- might ever want about Hustle (probably).
   resolve :: (PokeApiListable a tlist t) => t a -> IO a
-  resolve = getFromUrl' . getUrl
+  resolve = getFromUrl' . url
 
 -- | A class for lists of resources in PokeAPI. You should not have to interact
 -- with this class.
@@ -2310,17 +2313,19 @@ instance PokeApiListable Language NamedAPIResourceList NamedAPIResource where
 
 -- | <https://pokeapi.co/docs/v2#namedapiresource>
 data NamedAPIResource a = NamedAPIResource
-  { narName :: Text,
+  { name :: Text,
+    -- | You can use 'url' instead of 'narUrl' if you really need to access this.
     narUrl :: Text
   }
   deriving (Show, Eq, Ord, Generic)
 
 instance FromJSON (NamedAPIResource a) where
-  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 3}
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = \case "narUrl" -> "url"; "name" -> "name"; s' -> s'}
 
 -- | <https://pokeapi.co/docs/v2#apiresource>
 newtype APIResource a = APIResource
-  { arUrl :: Text
+  { -- | You can use 'url' instead of 'arUrl' if you really need to access this.
+    arUrl :: Text
   }
   deriving (Show, Eq, Ord, Generic)
 
@@ -2328,10 +2333,10 @@ instance FromJSON (APIResource a) where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = flm 2}
 
 instance Resolvable NamedAPIResource where
-  getUrl = narUrl
+  url = narUrl
 
 instance Resolvable APIResource where
-  getUrl = arUrl
+  url = arUrl
 
 -- ** Lists of (Named-)APIResources (to deal with pagination)
 

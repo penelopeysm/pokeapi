@@ -19,7 +19,6 @@ source-repository head
 
 library
     exposed-modules:    Pokeapi
-    default-extensions: OverloadedStrings, ScopedTypeVariables
     build-depends:      base ^>=4.16 || ^>=4.17 || ^>=4.18,
                         aeson, bytestring, mtl, req, text, modern-uri
     hs-source-dirs:     src
