@@ -343,7 +343,7 @@ request url headers = do
   -- Generate a file name (which doesn't have too many special characters)
   let cacheFile =
         T.unpack $
-          (T.replace "/" "_" . T.replace "https://pokeapi.co/api/v2/" "" . renderUrl $ url)
+          (T.replace "/" "_" . T.dropWhileEnd (== '/') . T.replace "https://pokeapi.co/api/v2/" "" . renderUrl $ url)
             <> T.concat (map (\(k, v) -> "__" <> k <> maybe "" ("_" <>) v) (queryParamToList headers))
   maybeCacheDir <- lookupEnv "POKEAPI_CACHE_LOCATION"
   cacheDir <- case maybeCacheDir of
