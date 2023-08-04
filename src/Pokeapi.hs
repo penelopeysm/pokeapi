@@ -33,7 +33,7 @@ module Pokeapi
     -- * Core typeclasses
     PokeApi (get),
     PokeApiListable (gets),
-    Resolvable (resolve),
+    Resolvable (resolve, url),
     ResolvableList,
 
     -- * Berries
@@ -276,19 +276,23 @@ module Pokeapi
 where
 
 import Control.Exception (Exception (..), catch, throwIO, try)
+import Control.Monad (unless)
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.Aeson
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import Data.Char (toLower)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe, isJust)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Void (Void)
 import GHC.Generics
 import Network.HTTP.Req
+import System.Directory (createDirectoryIfMissing, getHomeDirectory)
+import System.Environment (lookupEnv)
+import System.FilePath ((</>))
 import Text.URI (mkURI)
 
 -- | API base URL
@@ -322,25 +326,62 @@ lower1 (x : xs) = toLower x : xs
 flm :: Int -> String -> String
 flm n = camelTo2 '_' . lower1 . drop n
 
--- | Run a Req action, catching any HTTP exceptions and rethrowing them as
--- 'PokeHttpException's.
-runReq' :: Req a -> IO a
-runReq' req = do
-  resp <- try (runReq defaultHttpConfig req)
-  case resp of
-    Left e -> throwIO (PokeHttpException e)
-    Right res -> pure res
+-- | Obtain PokeAPI data.
+--
+-- First, if POKEAPI_NO_CACHE is not set, queries the cache to see whether a
+-- cached response is present. If there is one, simply decodes and returns that.
+--
+-- If there is no cached value, or if decoding the file throws an error,
+-- executes a HTTP request to PokeAPI, catching any HTTP exceptions and
+-- rethrowing them as 'PokeHttpException's. The response body is then decoded as
+-- JSON, and any Aeson exceptions are rethrown as 'PokeJsonException's. Finally,
+-- the JSON is cached (again if POKEAPI_NO_CACHE is not set) and returned.
+request :: (FromJSON a) => Url 'Https -> Option 'Https -> IO a
+request url headers = do
+  -- Check whether caching is disabled
+  noCache <- isJust <$> lookupEnv "POKEAPI_NO_CACHE"
+  -- Generate a file name (which doesn't have too many special characters)
+  let cacheFile =
+        T.unpack $
+          (T.replace "/" "_" . T.replace "https://pokeapi.co/api/v2/" "" . renderUrl $ url)
+            <> T.concat (map (\(k, v) -> "__" <> k <> maybe "" ("_" <>) v) (queryParamToList headers))
+  maybeCacheDir <- lookupEnv "POKEAPI_CACHE_LOCATION"
+  cacheDir <- case maybeCacheDir of
+    Nothing -> do
+      homeDir <- getHomeDirectory
+      pure $ homeDir </> ".pokeapi_cache"
+    Just cd -> pure cd
+  let cacheFilePath = cacheDir </> cacheFile
 
-lbsToText :: LBS.ByteString -> Text
-lbsToText = T.decodeUtf8 . BS.concat . LBS.toChunks
-
--- | Decode a lazy ByteString response into a type, throwing any errors as
--- a wrapped 'PokeJsonException'. Takes a URL as an extra parameter, which is
--- used in the exception message.
-decodeBody' :: (FromJSON a) => Url 'Https -> LBS.ByteString -> IO a
-decodeBody' url body = case eitherDecode body of
-  Left err -> throwIO $ PokeJsonException $ T.pack err <> " when accessing URL: " <> renderUrl url
-  Right res -> pure res
+  -- Check cache
+  maybeCachedValue :: Maybe a <-
+    if noCache
+      then pure Nothing
+      else do
+        fileContents <- catch (Just <$> LBS.readFile cacheFilePath) (\(_ :: IOError) -> pure Nothing)
+        pure $ case fileContents of
+          Nothing -> Nothing -- File doesn't exist or is otherwise unreadable
+          Just cts -> case eitherDecode cts of
+            Left err -> Nothing -- File doesn't contain correct JSON
+            Right res -> Just res
+  case maybeCachedValue of
+    Just cachedValue -> pure cachedValue
+    Nothing -> do
+      -- Run HTTP request
+      eitherBody <- try $ runReq defaultHttpConfig $ do
+        resp <- req GET url NoReqBody lbsResponse (ua <> headers)
+        pure (responseBody resp)
+      case eitherBody of
+        Left e -> throwIO (PokeHttpException e)
+        Right body -> do
+          -- Cache
+          unless noCache $ do
+            createDirectoryIfMissing True cacheDir
+            LBS.writeFile cacheFilePath body
+          -- Decode
+          case eitherDecode body of
+            Left err -> throwIO $ PokeJsonException $ T.pack err <> " when accessing URL: " <> renderUrl url
+            Right res -> pure res
 
 -- | A typeclass for resources in PokeAPI.
 class (FromJSON a) => PokeApi a where
@@ -354,11 +395,7 @@ class (FromJSON a) => PokeApi a where
 
   -- | Retrieve an instance of the resource from the URL.
   getFromUrl :: Url 'Https -> IO a
-  getFromUrl url = do
-    body <- runReq' $ do
-      resp <- req GET url NoReqBody lbsResponse ua
-      pure (responseBody resp)
-    decodeBody' url body
+  getFromUrl url = request url mempty
 
   -- | Retrieve an instance of the resource from the identifier (either a
   -- numeric ID or a name). This, along with 'gets', is the primary function for
@@ -429,12 +466,9 @@ class
   getsFromUrl lim off url = do
     let limitHeader = maybe mempty ("limit" =:) lim
         offsetHeader = maybe mempty ("offset" =:) off
-    body <- runReq' $ do
-      resp <- req GET url NoReqBody lbsResponse (ua <> limitHeader <> offsetHeader)
-      pure (responseBody resp)
     -- Need type annotation here to specify that list has the specific tlist
     -- given in the instance definition
-    (list :: tlist a) <- decodeBody' url body
+    (list :: tlist a) <- request url (limitHeader <> offsetHeader)
     pure $ results list
 
   -- | Retrieve a list of resources. For example, to get the first 50 Pokemon:
