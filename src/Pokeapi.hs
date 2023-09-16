@@ -3,6 +3,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StrictData #-}
 
@@ -296,19 +297,21 @@ import System.Environment (lookupEnv)
 import System.FilePath ((</>))
 import Text.URI (mkURI)
 
--- | API base URL
-apiv2 :: Url 'Https
-apiv2 = https "pokeapi.co" /: "api" /: "v2"
+-- | Default API base URL
+pokeapiCo :: Url 'Https
+pokeapiCo = https "pokeapi.co"
 
 -- | User-agent header
-ua :: Option 'Https
+ua :: Option scheme
 ua = header "user-agent" "pokeapi-haskell v0.1.0.0 github:penelopeysm/pokeapi"
 
 -- * Exceptions
 
 -- | Exceptions that can be thrown by this library.
 data PokeException
-  = -- | Exceptions arising from the API itself. You should never see these.
+  = -- | Exceptions arising from the API itself. You should only ever see this
+    -- if you specify an invalid base URL in the POKEAPI_BASE_URL environment
+    -- variable.
     PokeException Text
   | -- | Exceptions arising from HTTP requests. You will get this if you pass an invalid parameter, for example.
     PokeHttpException HttpException
@@ -337,11 +340,13 @@ flm n = camelTo2 '_' . lower1 . drop n
 -- rethrowing them as 'PokeHttpException's. The response body is then decoded as
 -- JSON, and any Aeson exceptions are rethrown as 'PokeJsonException's. Finally,
 -- the JSON is cached (again if POKEAPI_NO_CACHE is not set) and returned.
-request :: (FromJSON a) => Url 'Https -> Option 'Https -> IO a
+request :: (FromJSON a) => Url scheme -> Option scheme -> IO a
 request url headers = do
   -- Check whether caching is disabled
   noCache <- isJust <$> lookupEnv "POKEAPI_NO_CACHE"
   -- Generate a file name (which doesn't have too many special characters)
+  -- TODO: this doesn't work with other URLs. We should properly deconstruct the
+  -- URL.
   let cacheFile =
         T.unpack $
           (T.replace "/" "_" . T.dropWhileEnd (== '/') . T.replace "https://pokeapi.co/api/v2/" "" . renderUrl $ url)
@@ -387,16 +392,29 @@ request url headers = do
 -- | A typeclass for resources in PokeAPI.
 class (FromJSON a) => PokeApi a where
   -- | Retrieve an instance of the resource from the URL.
-  getFromUrl' :: Text -> IO a
-  getFromUrl' u = do
-    mbUrl <- useHttpsURI <$> mkURI u
+  getFromUrl :: Text -> IO a
+  getFromUrl u = do
+    mbUrl <- useURI <$> mkURI u
     case mbUrl of
-      Nothing -> throwIO $ PokeException $ "Invalid HTTPS URL: " <> u
-      Just (url, _) -> getFromUrl url
+      Nothing -> throwIO $ PokeException $ "Invalid URL: " <> u
+      Just (Left (url, opts)) -> request url opts -- HTTP
+      Just (Right (url, opts)) -> request url opts -- HTTPS
 
-  -- | Retrieve an instance of the resource from the URL.
-  getFromUrl :: Url 'Https -> IO a
-  getFromUrl url = request url mempty
+  -- | Retrieve an instance of the resource from a given endpoint. Uses the
+  -- POKEAPI_BASE_URL environment variable to determine the base URL. Note that
+  -- the endpoint should not contain the /api/v2 section.
+  getFromEndpoint :: (forall scheme. Url scheme -> Url scheme) -> IO a
+  getFromEndpoint ep = do
+    baseUrlEnv <- fmap T.pack <$> lookupEnv "POKEAPI_BASE_URL"
+    case baseUrlEnv of
+      -- Environment variable not specified, default to pokeapi.co
+      Nothing -> request (ep $ https "pokeapi.co") mempty
+      Just baseUrl -> do
+        parsedBaseUrl <- useURI <$> mkURI baseUrl
+        case parsedBaseUrl of
+          Nothing -> throwIO $ PokeException $ "Invalid URL: " <> baseUrl
+          Just (Left (url, opts)) -> request (ep url) opts -- HTTP
+          Just (Right (url, opts)) -> request (ep url) opts -- HTTPS
 
   -- | Retrieve an instance of the resource from the identifier (either a
   -- numeric ID or a name). This, along with 'gets', is the primary function for
@@ -463,13 +481,29 @@ class
     | a -> tlist t
   where
   -- | Retrieve a list of resources from the URL.
-  getsFromUrl :: Maybe Int -> Maybe Int -> Url 'Https -> IO [t a]
-  getsFromUrl lim off url = do
+  getsFromEndpoint :: Maybe Int -> Maybe Int -> (forall scheme. Url scheme -> Url scheme) -> IO [t a]
+  getsFromEndpoint lim off ep = do
     let limitHeader = maybe mempty ("limit" =:) lim
         offsetHeader = maybe mempty ("offset" =:) off
+        headers = limitHeader <> offsetHeader
+    baseUrlEnv <- fmap T.pack <$> lookupEnv "POKEAPI_BASE_URL"
     -- Need type annotation here to specify that list has the specific tlist
     -- given in the instance definition
-    (list :: tlist a) <- request url (limitHeader <> offsetHeader)
+    (list :: tlist a) <- case baseUrlEnv of
+      -- Environment variable not specified, default to pokeapi.co
+      Nothing -> request (ep $ https "pokeapi.co") headers
+      Just baseUrl -> do
+        parsedBaseUrl <- useURI <$> mkURI baseUrl
+        case parsedBaseUrl of
+          Nothing -> throwIO $ PokeException $ "Invalid URL: " <> baseUrl
+          Just (Left (url, opts)) -> do
+            -- Need to duplicate polymorphic code here because headers already
+            -- has a type of Option 'Https
+            let limitHeaderHttp = maybe mempty ("limit" =:) lim
+                offsetHeaderHttp = maybe mempty ("offset" =:) off
+                headersHttp = limitHeaderHttp <> offsetHeaderHttp
+            request (ep url) (opts <> headersHttp) -- HTTP
+          Just (Right (url, opts)) -> request (ep url) (opts <> headers) -- HTTPS
     pure $ results list
 
   -- | Retrieve a list of resources. For example, to get the first 50 Pokemon:
@@ -532,7 +566,7 @@ class Resolvable t where
   -- Now, @hustle@ is of type 'Ability', and contains all the information you
   -- might ever want about Hustle (probably).
   resolve :: (PokeApiListable a tlist t) => t a -> IO a
-  resolve = getFromUrl' . url
+  resolve = getFromUrl . url
 
 -- | A class for lists of resources in PokeAPI. You should not have to interact
 -- with this class.
@@ -566,11 +600,11 @@ instance FromJSON Berry where
 
 -- | [@\/berry\/{id or name}@](https://pokeapi.co/docs/v2#berries)
 instance PokeApi Berry where
-  get iden = getFromUrl $ apiv2 /: "berry" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry" /: T.toLower iden
 
 -- | [@\/berry@](https://pokeapi.co/docs/v2#berries)
 instance PokeApiListable Berry NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "berry"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "berry"
 
 -- | <https://pokeapi.co/docs/v2#berryflavormap>
 data BerryFlavorMap = BerryFlavorMap
@@ -598,11 +632,11 @@ instance FromJSON BerryFirmness where
 
 -- | [@\/berry-firmness\/{id or name}@](https://pokeapi.co/docs/v2#berry-firmnesses)
 instance PokeApi BerryFirmness where
-  get iden = getFromUrl $ apiv2 /: "berry-firmness" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry-firmness" /: T.toLower iden
 
 -- | [@\/berry-firmness@](https://pokeapi.co/docs/v2#berry-firmnesses)
 instance PokeApiListable BerryFirmness NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "berry-firmness"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "berry-firmness"
 
 -- ** Berry Flavors
 
@@ -621,11 +655,11 @@ instance FromJSON BerryFlavor where
 
 -- | [@\/berry-flavor\/{id or name}@](https://pokeapi.co/docs/v2#berry-flavors)
 instance PokeApi BerryFlavor where
-  get iden = getFromUrl $ apiv2 /: "berry-flavor" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry-flavor" /: T.toLower iden
 
 -- | [@\/berry-flavor@](https://pokeapi.co/docs/v2#berry-flavors)
 instance PokeApiListable BerryFlavor NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "berry-flavor"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "berry-flavor"
 
 -- | <https://pokeapi.co/docs/v2#flavorberrymap>
 data FlavorBerryMap = FlavorBerryMap
@@ -655,11 +689,11 @@ instance FromJSON ContestType where
 
 -- | [@\/contest-type\/{id or name}@](https://pokeapi.co/docs/v2#contest-types)
 instance PokeApi ContestType where
-  get iden = getFromUrl $ apiv2 /: "contest-type" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "contest-type" /: T.toLower iden
 
 -- | [@\/contest-type@](https://pokeapi.co/docs/v2#contest-types)
 instance PokeApiListable ContestType NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "contest-type"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "contest-type"
 
 -- | <https://pokeapi.co/docs/v2#contestname>
 data ContestName = ContestName
@@ -689,11 +723,11 @@ instance FromJSON ContestEffect where
 
 -- | [@\/contest-effect\/{id}@](https://pokeapi.co/docs/v2#contest-effects)
 instance PokeApi ContestEffect where
-  get iden = getFromUrl $ apiv2 /: "contest-effect" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "contest-effect" /: T.toLower iden
 
 -- | [@\/contest-effect@](https://pokeapi.co/docs/v2#contest-effects)
 instance PokeApiListable ContestEffect APIResourceList APIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "contest-effect"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "contest-effect"
 
 -- ** Super Contest Effects
 
@@ -711,11 +745,11 @@ instance FromJSON SuperContestEffect where
 
 -- | [@\/super-contest-effect\/{id}@](https://pokeapi.co/docs/v2#super-contest-effects)
 instance PokeApi SuperContestEffect where
-  get iden = getFromUrl $ apiv2 /: "super-contest-effect" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "super-contest-effect" /: T.toLower iden
 
 -- | [@\/super-contest-effect@](https://pokeapi.co/docs/v2#super-contest-effects)
 instance PokeApiListable SuperContestEffect APIResourceList APIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "super-contest-effect"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "super-contest-effect"
 
 -- * Encounters
 
@@ -735,11 +769,11 @@ instance FromJSON EncounterMethod where
 
 -- | [@\/encounter-method\/{id or name}@](https://pokeapi.co/docs/v2#encounter-methods)
 instance PokeApi EncounterMethod where
-  get iden = getFromUrl $ apiv2 /: "encounter-method" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-method" /: T.toLower iden
 
 -- | [@\/encounter-method@](https://pokeapi.co/docs/v2#encounter-methods)
 instance PokeApiListable EncounterMethod NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "encounter-method"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "encounter-method"
 
 -- ** Encounter Conditions
 
@@ -759,11 +793,11 @@ instance FromJSON EncounterCondition where
 
 -- | [@\/encounter-condition\/{id or name}@](https://pokeapi.co/docs/v2#encounter-conditions)
 instance PokeApi EncounterCondition where
-  get iden = getFromUrl $ apiv2 /: "encounter-condition" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-condition" /: T.toLower iden
 
 -- | [@\/encounter-condition@](https://pokeapi.co/docs/v2#encounter-conditions)
 instance PokeApiListable EncounterCondition NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "encounter-condition"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "encounter-condition"
 
 -- ** Encounter Condition Values
 
@@ -781,11 +815,11 @@ instance FromJSON EncounterConditionValue where
 
 -- | [@\/encounter-condition-value\/{id or name}@](https://pokeapi.co/docs/v2#encounter-condition-values)
 instance PokeApi EncounterConditionValue where
-  get iden = getFromUrl $ apiv2 /: "encounter-condition-value" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-condition-value" /: T.toLower iden
 
 -- | [@\/encounter-condition-value@](https://pokeapi.co/docs/v2#encounter-condition-values)
 instance PokeApiListable EncounterConditionValue NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "encounter-condition-value"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "encounter-condition-value"
 
 -- * Evolution
 
@@ -804,11 +838,11 @@ instance FromJSON EvolutionChain where
 
 -- | [@\/evolution-chain\/{id}@](https://pokeapi.co/docs/v2#evolution-chains)
 instance PokeApi EvolutionChain where
-  get iden = getFromUrl $ apiv2 /: "evolution-chain" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "evolution-chain" /: T.toLower iden
 
 -- | [@\/evolution-chain@](https://pokeapi.co/docs/v2#evolution-chains)
 instance PokeApiListable EvolutionChain APIResourceList APIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "evolution-chain"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "evolution-chain"
 
 -- | <https://pokeapi.co/docs/v2#chainlink>
 data ChainLink = ChainLink
@@ -864,11 +898,11 @@ instance FromJSON EvolutionTrigger where
 
 -- | [@\/evolution-trigger\/{id or name}@](https://pokeapi.co/docs/v2#evolution-triggers)
 instance PokeApi EvolutionTrigger where
-  get iden = getFromUrl $ apiv2 /: "evolution-trigger" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "evolution-trigger" /: T.toLower iden
 
 -- | [@\/evolution-trigger@](https://pokeapi.co/docs/v2#evolution-triggers)
 instance PokeApiListable EvolutionTrigger NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "evolution-trigger"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "evolution-trigger"
 
 -- * Games
 
@@ -893,11 +927,11 @@ instance FromJSON Generation where
 
 -- | [@\/generation\/{id or name}@](https://pokeapi.co/docs/v2#generations)
 instance PokeApi Generation where
-  get iden = getFromUrl $ apiv2 /: "generation" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "generation" /: T.toLower iden
 
 -- | [@\/generation@](https://pokeapi.co/docs/v2#generations)
 instance PokeApiListable Generation NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "generation"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "generation"
 
 -- ** Pokedexes
 
@@ -920,11 +954,11 @@ instance FromJSON Pokedex where
 
 -- | [@\/pokedex\/{id or name}@](https://pokeapi.co/docs/v2#pokedexes)
 instance PokeApi Pokedex where
-  get iden = getFromUrl $ apiv2 /: "pokedex" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokedex" /: T.toLower iden
 
 -- | [@\/pokedex@](https://pokeapi.co/docs/v2#pokedexes)
 instance PokeApiListable Pokedex NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pokedex"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pokedex"
 
 -- | <https://pokeapi.co/docs/v2#pokemonentry>
 data PokemonEntry = PokemonEntry
@@ -952,11 +986,11 @@ instance FromJSON Version where
 
 -- | [@\/version\/{id or name}@](https://pokeapi.co/docs/v2#version)
 instance PokeApi Version where
-  get iden = getFromUrl $ apiv2 /: "version" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "version" /: T.toLower iden
 
 -- | [@\/version@](https://pokeapi.co/docs/v2#version)
 instance PokeApiListable Version NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "version"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "version"
 
 -- ** Version Groups
 
@@ -978,11 +1012,11 @@ instance FromJSON VersionGroup where
 
 -- | [@\/version-group\/{id or name}@](https://pokeapi.co/docs/v2#version-groups)
 instance PokeApi VersionGroup where
-  get iden = getFromUrl $ apiv2 /: "version-group" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "version-group" /: T.toLower iden
 
 -- | [@\/version-group@](https://pokeapi.co/docs/v2#version-groups)
 instance PokeApiListable VersionGroup NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "version-group"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "version-group"
 
 -- * Items
 
@@ -1013,11 +1047,11 @@ instance FromJSON Item where
 
 -- | [@\/item\/{id or name}@](https://pokeapi.co/docs/v2#item)
 instance PokeApi Item where
-  get iden = getFromUrl $ apiv2 /: "item" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item" /: T.toLower iden
 
 -- | [@\/item@](https://pokeapi.co/docs/v2#item)
 instance PokeApiListable Item NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "item"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "item"
 
 -- | <https://pokeapi.co/docs/v2#itemsprites>
 newtype ItemSprites = ItemSprites
@@ -1065,11 +1099,11 @@ instance FromJSON ItemAttribute where
 
 -- | [@\/item-attribute\/{id or name}@](https://pokeapi.co/docs/v2#item-attributes)
 instance PokeApi ItemAttribute where
-  get iden = getFromUrl $ apiv2 /: "item-attribute" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-attribute" /: T.toLower iden
 
 -- | [@\/item-attribute@](https://pokeapi.co/docs/v2#item-attributes)
 instance PokeApiListable ItemAttribute NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "item-attribute"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "item-attribute"
 
 -- ** Item Categories
 
@@ -1088,11 +1122,11 @@ instance FromJSON ItemCategory where
 
 -- | [@\/item-category\/{id or name}@](https://pokeapi.co/docs/v2#item-categories)
 instance PokeApi ItemCategory where
-  get iden = getFromUrl $ apiv2 /: "item-category" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-category" /: T.toLower iden
 
 -- | [@\/item-category@](https://pokeapi.co/docs/v2#item-categories)
 instance PokeApiListable ItemCategory NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "item-category"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "item-category"
 
 -- ** Item Fling Effects
 
@@ -1110,11 +1144,11 @@ instance FromJSON ItemFlingEffect where
 
 -- | [@\/item-fling-effect\/{id or name}@](https://pokeapi.co/docs/v2#item-fling-effects)
 instance PokeApi ItemFlingEffect where
-  get iden = getFromUrl $ apiv2 /: "item-fling-effect" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-fling-effect" /: T.toLower iden
 
 -- | [@\/item-fling-effect@](https://pokeapi.co/docs/v2#item-fling-effects)
 instance PokeApiListable ItemFlingEffect NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "item-fling-effect"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "item-fling-effect"
 
 -- ** Item Pockets
 
@@ -1132,11 +1166,11 @@ instance FromJSON ItemPocket where
 
 -- | [@\/item-pocket\/{id or name}@](https://pokeapi.co/docs/v2#item-pockets)
 instance PokeApi ItemPocket where
-  get iden = getFromUrl $ apiv2 /: "item-pocket" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-pocket" /: T.toLower iden
 
 -- | [@\/item-pocket@](https://pokeapi.co/docs/v2#item-pockets)
 instance PokeApiListable ItemPocket NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "item-pocket"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "item-pocket"
 
 -- * Locations
 
@@ -1158,11 +1192,11 @@ instance FromJSON Location where
 
 -- | [@\/location\/{id or name}@](https://pokeapi.co/docs/v2#locations)
 instance PokeApi Location where
-  get iden = getFromUrl $ apiv2 /: "location" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "location" /: T.toLower iden
 
 -- | [@\/location@](https://pokeapi.co/docs/v2#locations)
 instance PokeApiListable Location NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "location"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "location"
 
 -- ** Location Areas
 
@@ -1183,11 +1217,11 @@ instance FromJSON LocationArea where
 
 -- | [@\/location-area\/{id or name}@](https://pokeapi.co/docs/v2#location-areas)
 instance PokeApi LocationArea where
-  get iden = getFromUrl $ apiv2 /: "location-area" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "location-area" /: T.toLower iden
 
 -- | [@\/location-area@](https://pokeapi.co/docs/v2#location-areas)
 instance PokeApiListable LocationArea NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "location-area"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "location-area"
 
 -- | <https://pokeapi.co/docs/v2#encountermethodrate>
 data EncounterMethodRate = EncounterMethodRate
@@ -1235,11 +1269,11 @@ instance FromJSON PalParkArea where
 
 -- | [@\/pal-park-area\/{id or name}@](https://pokeapi.co/docs/v2#pal-park-areas)
 instance PokeApi PalParkArea where
-  get iden = getFromUrl $ apiv2 /: "pal-park-area" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pal-park-area" /: T.toLower iden
 
 -- | [@\/pal-park-area@](https://pokeapi.co/docs/v2#pal-park-areas)
 instance PokeApiListable PalParkArea NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pal-park-area"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pal-park-area"
 
 -- | <https://pokeapi.co/docs/v2#palparkencounterspecies>
 data PalParkEncounterSpecies = PalParkEncounterSpecies
@@ -1272,11 +1306,11 @@ instance FromJSON Region where
 
 -- | [@\/region\/{id or name}@](https://pokeapi.co/docs/v2#regions)
 instance PokeApi Region where
-  get iden = getFromUrl $ apiv2 /: "region" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "region" /: T.toLower iden
 
 -- | [@\/region@](https://pokeapi.co/docs/v2#regions)
 instance PokeApiListable Region NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "region"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "region"
 
 -- * Machines
 
@@ -1294,11 +1328,11 @@ instance FromJSON Machine where
 
 -- | [@\/machine\/{id}@](https://pokeapi.co/docs/v2#machines)
 instance PokeApi Machine where
-  get iden = getFromUrl $ apiv2 /: "machine" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "machine" /: T.toLower iden
 
 -- | [@\/machine@](https://pokeapi.co/docs/v2#machines)
 instance PokeApiListable Machine APIResourceList APIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "machine"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "machine"
 
 -- * Moves
 
@@ -1341,11 +1375,11 @@ instance FromJSON Move where
 
 -- | [@\/move\/{id or name}@](https://pokeapi.co/docs/v2#moves)
 instance PokeApi Move where
-  get iden = getFromUrl $ apiv2 /: "move" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move" /: T.toLower iden
 
 -- | [@\/move@](https://pokeapi.co/docs/v2#moves)
 instance PokeApiListable Move NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "move"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "move"
 
 -- | <https://pokeapi.co/docs/v2#contestcombosets>
 data ContestComboSets = ContestComboSets
@@ -1439,11 +1473,11 @@ instance FromJSON MoveAilment where
 
 -- | [@\/move-ailment\/{id or name}@](https://pokeapi.co/docs/v2#move-ailments)
 instance PokeApi MoveAilment where
-  get iden = getFromUrl $ apiv2 /: "move-ailment" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-ailment" /: T.toLower iden
 
 -- | [@\/move-ailment@](https://pokeapi.co/docs/v2#move-ailments)
 instance PokeApiListable MoveAilment NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "move-ailment"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "move-ailment"
 
 -- ** Move Battle Styles
 
@@ -1460,11 +1494,11 @@ instance FromJSON MoveBattleStyle where
 
 -- | [@\/move-battle-style\/{id or name}@](https://pokeapi.co/docs/v2#move-battle-styles)
 instance PokeApi MoveBattleStyle where
-  get iden = getFromUrl $ apiv2 /: "move-battle-style" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-battle-style" /: T.toLower iden
 
 -- | [@\/move-battle-style@](https://pokeapi.co/docs/v2#move-battle-styles)
 instance PokeApiListable MoveBattleStyle NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "move-battle-style"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "move-battle-style"
 
 -- ** Move Categories
 
@@ -1482,11 +1516,11 @@ instance FromJSON MoveCategory where
 
 -- | [@\/move-category\/{id or name}@](https://pokeapi.co/docs/v2#move-categories)
 instance PokeApi MoveCategory where
-  get iden = getFromUrl $ apiv2 /: "move-category" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-category" /: T.toLower iden
 
 -- | [@\/move-category@](https://pokeapi.co/docs/v2#move-categories)
 instance PokeApiListable MoveCategory NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "move-category"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "move-category"
 
 -- ** Move Damage Classes
 
@@ -1505,11 +1539,11 @@ instance FromJSON MoveDamageClass where
 
 -- | [@\/move-damage-class\/{id or name}@](https://pokeapi.co/docs/v2#move-damage-classes)
 instance PokeApi MoveDamageClass where
-  get iden = getFromUrl $ apiv2 /: "move-damage-class" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-damage-class" /: T.toLower iden
 
 -- | [@\/move-damage-class@](https://pokeapi.co/docs/v2#move-damage-classes)
 instance PokeApiListable MoveDamageClass NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "move-damage-class"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "move-damage-class"
 
 -- ** Move Learn Methods
 
@@ -1528,11 +1562,11 @@ instance FromJSON MoveLearnMethod where
 
 -- | [@\/move-learn-method\/{id or name}@](https://pokeapi.co/docs/v2#move-learn-methods)
 instance PokeApi MoveLearnMethod where
-  get iden = getFromUrl $ apiv2 /: "move-learn-method" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-learn-method" /: T.toLower iden
 
 -- | [@\/move-learn-method@](https://pokeapi.co/docs/v2#move-learn-methods)
 instance PokeApiListable MoveLearnMethod NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "move-learn-method"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "move-learn-method"
 
 -- ** Move Targets
 
@@ -1551,11 +1585,11 @@ instance FromJSON MoveTarget where
 
 -- | [@\/move-target\/{id or name}@](https://pokeapi.co/docs/v2#move-targets)
 instance PokeApi MoveTarget where
-  get iden = getFromUrl $ apiv2 /: "move-target" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-target" /: T.toLower iden
 
 -- | [@\/move-target@](https://pokeapi.co/docs/v2#move-targets)
 instance PokeApiListable MoveTarget NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "move-target"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "move-target"
 
 -- * Pokemon
 
@@ -1580,11 +1614,11 @@ instance FromJSON Ability where
 
 -- | [@\/ability\/{id or name}@](https://pokeapi.co/docs/v2#abilities)
 instance PokeApi Ability where
-  get iden = getFromUrl $ apiv2 /: "ability" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "ability" /: T.toLower iden
 
 -- | [@\/ability@](https://pokeapi.co/docs/v2#abilities)
 instance PokeApiListable Ability NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "ability"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "ability"
 
 -- | <https://pokeapi.co/docs/v2#abilityeffectchange>
 data AbilityEffectChange = AbilityEffectChange
@@ -1635,11 +1669,11 @@ instance FromJSON Characteristic where
 
 -- | [@\/characteristic\/{id}@](https://pokeapi.co/docs/v2#characteristics)
 instance PokeApi Characteristic where
-  get iden = getFromUrl $ apiv2 /: "characteristic" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "characteristic" /: T.toLower iden
 
 -- | [@\/characteristic@](https://pokeapi.co/docs/v2#characteristics)
 instance PokeApiListable Characteristic APIResourceList APIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "characteristic"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "characteristic"
 
 -- ** Egg Groups
 
@@ -1657,11 +1691,11 @@ instance FromJSON EggGroup where
 
 -- | [@\/egg-group\/{id or name}@](https://pokeapi.co/docs/v2#egg-groups)
 instance PokeApi EggGroup where
-  get iden = getFromUrl $ apiv2 /: "egg-group" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "egg-group" /: T.toLower iden
 
 -- | [@\/egg-group@](https://pokeapi.co/docs/v2#egg-groups)
 instance PokeApiListable EggGroup NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "egg-group"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "egg-group"
 
 -- ** Genders
 
@@ -1679,11 +1713,11 @@ instance FromJSON Gender where
 
 -- | [@\/gender\/{id or name}@](https://pokeapi.co/docs/v2#genders)
 instance PokeApi Gender where
-  get iden = getFromUrl $ apiv2 /: "gender" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "gender" /: T.toLower iden
 
 -- | [@\/gender@](https://pokeapi.co/docs/v2#genders)
 instance PokeApiListable Gender NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "gender"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "gender"
 
 -- | <https://pokeapi.co/docs/v2#pokemonspeciesgender>
 data PokemonSpeciesGender = PokemonSpeciesGender
@@ -1713,11 +1747,11 @@ instance FromJSON GrowthRate where
 
 -- | [@\/growth-rate\/{id or name}@](https://pokeapi.co/docs/v2#growth-rates)
 instance PokeApi GrowthRate where
-  get iden = getFromUrl $ apiv2 /: "growth-rate" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "growth-rate" /: T.toLower iden
 
 -- | [@\/growth-rate@](https://pokeapi.co/docs/v2#growth-rates)
 instance PokeApiListable GrowthRate NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "growth-rate"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "growth-rate"
 
 -- | <https://pokeapi.co/docs/v2#growthrateexperiencelevel>
 data GrowthRateExperienceLevel = GrowthRateExperienceLevel
@@ -1750,11 +1784,11 @@ instance FromJSON Nature where
 
 -- | [@\/nature\/{id or name}@](https://pokeapi.co/docs/v2#natures)
 instance PokeApi Nature where
-  get iden = getFromUrl $ apiv2 /: "nature" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "nature" /: T.toLower iden
 
 -- | [@\/nature@](https://pokeapi.co/docs/v2#natures)
 instance PokeApiListable Nature NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "nature"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "nature"
 
 -- | <https://pokeapi.co/docs/v2#naturestatchange>
 data NatureStatChange = NatureStatChange
@@ -1793,11 +1827,11 @@ instance FromJSON PokeathlonStat where
 
 -- | [@\/pokeathlon-stat\/{id or name}@](https://pokeapi.co/docs/v2#pokeathlon-stats)
 instance PokeApi PokeathlonStat where
-  get iden = getFromUrl $ apiv2 /: "pokeathlon-stat" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokeathlon-stat" /: T.toLower iden
 
 -- | [@\/pokeathlon-stat@](https://pokeapi.co/docs/v2#pokeathlon-stats)
 instance PokeApiListable PokeathlonStat NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pokeathlon-stat"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pokeathlon-stat"
 
 -- | <https://pokeapi.co/docs/v2#naturepokeathlonstataffectsets>
 data NaturePokeathlonStatAffectSets = NaturePokeathlonStatAffectSets
@@ -1849,11 +1883,11 @@ instance FromJSON Pokemon where
 
 -- | [@\/pokemon\/{id or name}@](https://pokeapi.co/docs/v2#pokemon)
 instance PokeApi Pokemon where
-  get iden = getFromUrl $ apiv2 /: "pokemon" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon" /: T.toLower iden
 
 -- | [@\/pokemon@](https://pokeapi.co/docs/v2#pokemon)
 instance PokeApiListable Pokemon NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pokemon"
 
 -- | <https://pokeapi.co/docs/v2#pokemonability>
 data PokemonAbility = PokemonAbility
@@ -1978,7 +2012,7 @@ instance FromJSON PokemonLocationArea where
 
 -- | [@\/pokemon\/{id or name}\/encounters@](https://pokeapi.co/docs/v2#pokemon-location-areas)
 instance PokeApi PokemonLocationArea where
-  get iden = getFromUrl $ apiv2 /: "pokemon" /: T.toLower iden /: "encounters"
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon" /: T.toLower iden /: "encounters"
 
 -- | <https://pokeapi.co/docs/v2#pokemon-location-areas>
 data LocationAreaEncounter = LocationAreaEncounter
@@ -2006,11 +2040,11 @@ instance FromJSON PokemonColor where
 
 -- | [@\/pokemon-color\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-colors)
 instance PokeApi PokemonColor where
-  get iden = getFromUrl $ apiv2 /: "pokemon-color" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-color" /: T.toLower iden
 
 -- | [@\/pokemon-color@](https://pokeapi.co/docs/v2#pokemon-colors)
 instance PokeApiListable PokemonColor NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-color"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pokemon-color"
 
 -- ** Pokemon Forms
 
@@ -2038,11 +2072,11 @@ instance FromJSON PokemonForm where
 
 -- | [@\/pokemon-form\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-forms)
 instance PokeApi PokemonForm where
-  get iden = getFromUrl $ apiv2 /: "pokemon-form" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-form" /: T.toLower iden
 
 -- | [@\/pokemon-form@](https://pokeapi.co/docs/v2#pokemon-forms)
 instance PokeApiListable PokemonForm NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-form"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pokemon-form"
 
 -- | <https://pokeapi.co/docs/v2#pokemonformsprites>
 data PokemonFormSprites = PokemonFormSprites
@@ -2072,11 +2106,11 @@ instance FromJSON PokemonHabitat where
 
 -- | [@\/pokemon-habitat\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-habitats)
 instance PokeApi PokemonHabitat where
-  get iden = getFromUrl $ apiv2 /: "pokemon-habitat" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-habitat" /: T.toLower iden
 
 -- | [@\/pokemon-habitat@](https://pokeapi.co/docs/v2#pokemon-habitats)
 instance PokeApiListable PokemonHabitat NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-habitat"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pokemon-habitat"
 
 -- ** Pokemon Shapes
 
@@ -2095,11 +2129,11 @@ instance FromJSON PokemonShape where
 
 -- | [@\/pokemon-shape\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-shapes)
 instance PokeApi PokemonShape where
-  get iden = getFromUrl $ apiv2 /: "pokemon-shape" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-shape" /: T.toLower iden
 
 -- | [@\/pokemon-shape@](https://pokeapi.co/docs/v2#pokemon-shapes)
 instance PokeApiListable PokemonShape NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-shape"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pokemon-shape"
 
 -- | <https://pokeapi.co/docs/v2#awesomename>
 data AwesomeName = AwesomeName
@@ -2151,11 +2185,11 @@ instance FromJSON PokemonSpecies where
 
 -- | [@\/pokemon-species\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-species)
 instance PokeApi PokemonSpecies where
-  get iden = getFromUrl $ apiv2 /: "pokemon-species" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-species" /: T.toLower iden
 
 -- | [@\/pokemon-species@](https://pokeapi.co/docs/v2#pokemon-species)
 instance PokeApiListable PokemonSpecies NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "pokemon-species"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "pokemon-species"
 
 -- | <https://pokeapi.co/docs/v2#genus>
 data Genus = Genus
@@ -2219,11 +2253,11 @@ instance FromJSON Stat where
 
 -- | [@\/stat\/{id or name}@](https://pokeapi.co/docs/v2#stats)
 instance PokeApi Stat where
-  get iden = getFromUrl $ apiv2 /: "stat" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "stat" /: T.toLower iden
 
 -- | [@\/stat@](https://pokeapi.co/docs/v2#stats)
 instance PokeApiListable Stat NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "stat"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "stat"
 
 -- | <https://pokeapi.co/docs/v2#movestataffectsets>
 data MoveStatAffectSets = MoveStatAffectSets
@@ -2278,11 +2312,11 @@ instance FromJSON Type where
 
 -- | [@\/type\/{id or name}@](https://pokeapi.co/docs/v2#types)
 instance PokeApi Type where
-  get iden = getFromUrl $ apiv2 /: "type" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "type" /: T.toLower iden
 
 -- | [@\/type@](https://pokeapi.co/docs/v2#types)
 instance PokeApiListable Type NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "type"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "type"
 
 -- | <https://pokeapi.co/docs/v2#typepokemon>
 data TypePokemon = TypePokemon
@@ -2338,11 +2372,11 @@ instance FromJSON Language where
 
 -- | [@\/language\/{id or name}@](https://pokeapi.co/docs/v2#languages)
 instance PokeApi Language where
-  get iden = getFromUrl $ apiv2 /: "language" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "language" /: T.toLower iden
 
 -- | [@\/language@](https://pokeapi.co/docs/v2#languages)
 instance PokeApiListable Language NamedAPIResourceList NamedAPIResource where
-  gets lim off = getsFromUrl lim off $ apiv2 /: "language"
+  gets lim off = getsFromEndpoint lim off $ \base -> base /: "api" /: "v2" /: "language"
 
 -- ** (Named-)APIResources
 

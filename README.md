@@ -22,6 +22,12 @@ main = do
 > *regions, bringing them gifts of kindness*  
 > *and sweet blessings.*
 
+## Switching the base URL
+
+Set the `POKEAPI_BASE_URL` environment variable to wherever you are hosting the data on.
+For example, when developing locally (using the Makefile in the [original repository](https://github.com/pokeapi/pokeapi)), you can set this to `http://localhost:8000`.
+(Note that the `http://` prefix is mandatory.)
+
 ## Caching
 
 PokeAPI generally asks that you locally cache results where possible.
