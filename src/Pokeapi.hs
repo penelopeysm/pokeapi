@@ -600,7 +600,7 @@ instance FromJSON Berry where
 
 -- | [@\/berry\/{id or name}@](https://pokeapi.co/docs/v2#berries)
 instance PokeApi Berry where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry" /: T.toLower iden /: ""
 
 -- | [@\/berry@](https://pokeapi.co/docs/v2#berries)
 instance PokeApiListable Berry NamedAPIResourceList NamedAPIResource where
@@ -632,7 +632,7 @@ instance FromJSON BerryFirmness where
 
 -- | [@\/berry-firmness\/{id or name}@](https://pokeapi.co/docs/v2#berry-firmnesses)
 instance PokeApi BerryFirmness where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry-firmness" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry-firmness" /: T.toLower iden /: ""
 
 -- | [@\/berry-firmness@](https://pokeapi.co/docs/v2#berry-firmnesses)
 instance PokeApiListable BerryFirmness NamedAPIResourceList NamedAPIResource where
@@ -655,7 +655,7 @@ instance FromJSON BerryFlavor where
 
 -- | [@\/berry-flavor\/{id or name}@](https://pokeapi.co/docs/v2#berry-flavors)
 instance PokeApi BerryFlavor where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry-flavor" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "berry-flavor" /: T.toLower iden /: ""
 
 -- | [@\/berry-flavor@](https://pokeapi.co/docs/v2#berry-flavors)
 instance PokeApiListable BerryFlavor NamedAPIResourceList NamedAPIResource where
@@ -689,7 +689,7 @@ instance FromJSON ContestType where
 
 -- | [@\/contest-type\/{id or name}@](https://pokeapi.co/docs/v2#contest-types)
 instance PokeApi ContestType where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "contest-type" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "contest-type" /: T.toLower iden /: ""
 
 -- | [@\/contest-type@](https://pokeapi.co/docs/v2#contest-types)
 instance PokeApiListable ContestType NamedAPIResourceList NamedAPIResource where
@@ -723,7 +723,7 @@ instance FromJSON ContestEffect where
 
 -- | [@\/contest-effect\/{id}@](https://pokeapi.co/docs/v2#contest-effects)
 instance PokeApi ContestEffect where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "contest-effect" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "contest-effect" /: T.toLower iden /: ""
 
 -- | [@\/contest-effect@](https://pokeapi.co/docs/v2#contest-effects)
 instance PokeApiListable ContestEffect APIResourceList APIResource where
@@ -745,7 +745,7 @@ instance FromJSON SuperContestEffect where
 
 -- | [@\/super-contest-effect\/{id}@](https://pokeapi.co/docs/v2#super-contest-effects)
 instance PokeApi SuperContestEffect where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "super-contest-effect" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "super-contest-effect" /: T.toLower iden /: ""
 
 -- | [@\/super-contest-effect@](https://pokeapi.co/docs/v2#super-contest-effects)
 instance PokeApiListable SuperContestEffect APIResourceList APIResource where
@@ -769,7 +769,7 @@ instance FromJSON EncounterMethod where
 
 -- | [@\/encounter-method\/{id or name}@](https://pokeapi.co/docs/v2#encounter-methods)
 instance PokeApi EncounterMethod where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-method" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-method" /: T.toLower iden /: ""
 
 -- | [@\/encounter-method@](https://pokeapi.co/docs/v2#encounter-methods)
 instance PokeApiListable EncounterMethod NamedAPIResourceList NamedAPIResource where
@@ -793,7 +793,7 @@ instance FromJSON EncounterCondition where
 
 -- | [@\/encounter-condition\/{id or name}@](https://pokeapi.co/docs/v2#encounter-conditions)
 instance PokeApi EncounterCondition where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-condition" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-condition" /: T.toLower iden /: ""
 
 -- | [@\/encounter-condition@](https://pokeapi.co/docs/v2#encounter-conditions)
 instance PokeApiListable EncounterCondition NamedAPIResourceList NamedAPIResource where
@@ -815,7 +815,7 @@ instance FromJSON EncounterConditionValue where
 
 -- | [@\/encounter-condition-value\/{id or name}@](https://pokeapi.co/docs/v2#encounter-condition-values)
 instance PokeApi EncounterConditionValue where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-condition-value" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "encounter-condition-value" /: T.toLower iden /: ""
 
 -- | [@\/encounter-condition-value@](https://pokeapi.co/docs/v2#encounter-condition-values)
 instance PokeApiListable EncounterConditionValue NamedAPIResourceList NamedAPIResource where
@@ -838,7 +838,7 @@ instance FromJSON EvolutionChain where
 
 -- | [@\/evolution-chain\/{id}@](https://pokeapi.co/docs/v2#evolution-chains)
 instance PokeApi EvolutionChain where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "evolution-chain" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "evolution-chain" /: T.toLower iden /: ""
 
 -- | [@\/evolution-chain@](https://pokeapi.co/docs/v2#evolution-chains)
 instance PokeApiListable EvolutionChain APIResourceList APIResource where
@@ -898,7 +898,7 @@ instance FromJSON EvolutionTrigger where
 
 -- | [@\/evolution-trigger\/{id or name}@](https://pokeapi.co/docs/v2#evolution-triggers)
 instance PokeApi EvolutionTrigger where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "evolution-trigger" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "evolution-trigger" /: T.toLower iden /: ""
 
 -- | [@\/evolution-trigger@](https://pokeapi.co/docs/v2#evolution-triggers)
 instance PokeApiListable EvolutionTrigger NamedAPIResourceList NamedAPIResource where
@@ -927,7 +927,7 @@ instance FromJSON Generation where
 
 -- | [@\/generation\/{id or name}@](https://pokeapi.co/docs/v2#generations)
 instance PokeApi Generation where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "generation" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "generation" /: T.toLower iden /: ""
 
 -- | [@\/generation@](https://pokeapi.co/docs/v2#generations)
 instance PokeApiListable Generation NamedAPIResourceList NamedAPIResource where
@@ -954,7 +954,7 @@ instance FromJSON Pokedex where
 
 -- | [@\/pokedex\/{id or name}@](https://pokeapi.co/docs/v2#pokedexes)
 instance PokeApi Pokedex where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokedex" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokedex" /: T.toLower iden /: ""
 
 -- | [@\/pokedex@](https://pokeapi.co/docs/v2#pokedexes)
 instance PokeApiListable Pokedex NamedAPIResourceList NamedAPIResource where
@@ -986,7 +986,7 @@ instance FromJSON Version where
 
 -- | [@\/version\/{id or name}@](https://pokeapi.co/docs/v2#version)
 instance PokeApi Version where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "version" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "version" /: T.toLower iden /: ""
 
 -- | [@\/version@](https://pokeapi.co/docs/v2#version)
 instance PokeApiListable Version NamedAPIResourceList NamedAPIResource where
@@ -1012,7 +1012,7 @@ instance FromJSON VersionGroup where
 
 -- | [@\/version-group\/{id or name}@](https://pokeapi.co/docs/v2#version-groups)
 instance PokeApi VersionGroup where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "version-group" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "version-group" /: T.toLower iden /: ""
 
 -- | [@\/version-group@](https://pokeapi.co/docs/v2#version-groups)
 instance PokeApiListable VersionGroup NamedAPIResourceList NamedAPIResource where
@@ -1047,7 +1047,7 @@ instance FromJSON Item where
 
 -- | [@\/item\/{id or name}@](https://pokeapi.co/docs/v2#item)
 instance PokeApi Item where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item" /: T.toLower iden /: ""
 
 -- | [@\/item@](https://pokeapi.co/docs/v2#item)
 instance PokeApiListable Item NamedAPIResourceList NamedAPIResource where
@@ -1099,7 +1099,7 @@ instance FromJSON ItemAttribute where
 
 -- | [@\/item-attribute\/{id or name}@](https://pokeapi.co/docs/v2#item-attributes)
 instance PokeApi ItemAttribute where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-attribute" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-attribute" /: T.toLower iden /: ""
 
 -- | [@\/item-attribute@](https://pokeapi.co/docs/v2#item-attributes)
 instance PokeApiListable ItemAttribute NamedAPIResourceList NamedAPIResource where
@@ -1122,7 +1122,7 @@ instance FromJSON ItemCategory where
 
 -- | [@\/item-category\/{id or name}@](https://pokeapi.co/docs/v2#item-categories)
 instance PokeApi ItemCategory where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-category" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-category" /: T.toLower iden /: ""
 
 -- | [@\/item-category@](https://pokeapi.co/docs/v2#item-categories)
 instance PokeApiListable ItemCategory NamedAPIResourceList NamedAPIResource where
@@ -1144,7 +1144,7 @@ instance FromJSON ItemFlingEffect where
 
 -- | [@\/item-fling-effect\/{id or name}@](https://pokeapi.co/docs/v2#item-fling-effects)
 instance PokeApi ItemFlingEffect where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-fling-effect" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-fling-effect" /: T.toLower iden /: ""
 
 -- | [@\/item-fling-effect@](https://pokeapi.co/docs/v2#item-fling-effects)
 instance PokeApiListable ItemFlingEffect NamedAPIResourceList NamedAPIResource where
@@ -1166,7 +1166,7 @@ instance FromJSON ItemPocket where
 
 -- | [@\/item-pocket\/{id or name}@](https://pokeapi.co/docs/v2#item-pockets)
 instance PokeApi ItemPocket where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-pocket" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "item-pocket" /: T.toLower iden /: ""
 
 -- | [@\/item-pocket@](https://pokeapi.co/docs/v2#item-pockets)
 instance PokeApiListable ItemPocket NamedAPIResourceList NamedAPIResource where
@@ -1192,7 +1192,7 @@ instance FromJSON Location where
 
 -- | [@\/location\/{id or name}@](https://pokeapi.co/docs/v2#locations)
 instance PokeApi Location where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "location" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "location" /: T.toLower iden /: ""
 
 -- | [@\/location@](https://pokeapi.co/docs/v2#locations)
 instance PokeApiListable Location NamedAPIResourceList NamedAPIResource where
@@ -1217,7 +1217,7 @@ instance FromJSON LocationArea where
 
 -- | [@\/location-area\/{id or name}@](https://pokeapi.co/docs/v2#location-areas)
 instance PokeApi LocationArea where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "location-area" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "location-area" /: T.toLower iden /: ""
 
 -- | [@\/location-area@](https://pokeapi.co/docs/v2#location-areas)
 instance PokeApiListable LocationArea NamedAPIResourceList NamedAPIResource where
@@ -1269,7 +1269,7 @@ instance FromJSON PalParkArea where
 
 -- | [@\/pal-park-area\/{id or name}@](https://pokeapi.co/docs/v2#pal-park-areas)
 instance PokeApi PalParkArea where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pal-park-area" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pal-park-area" /: T.toLower iden /: ""
 
 -- | [@\/pal-park-area@](https://pokeapi.co/docs/v2#pal-park-areas)
 instance PokeApiListable PalParkArea NamedAPIResourceList NamedAPIResource where
@@ -1306,7 +1306,7 @@ instance FromJSON Region where
 
 -- | [@\/region\/{id or name}@](https://pokeapi.co/docs/v2#regions)
 instance PokeApi Region where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "region" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "region" /: T.toLower iden /: ""
 
 -- | [@\/region@](https://pokeapi.co/docs/v2#regions)
 instance PokeApiListable Region NamedAPIResourceList NamedAPIResource where
@@ -1328,7 +1328,7 @@ instance FromJSON Machine where
 
 -- | [@\/machine\/{id}@](https://pokeapi.co/docs/v2#machines)
 instance PokeApi Machine where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "machine" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "machine" /: T.toLower iden /: ""
 
 -- | [@\/machine@](https://pokeapi.co/docs/v2#machines)
 instance PokeApiListable Machine APIResourceList APIResource where
@@ -1375,7 +1375,7 @@ instance FromJSON Move where
 
 -- | [@\/move\/{id or name}@](https://pokeapi.co/docs/v2#moves)
 instance PokeApi Move where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move" /: T.toLower iden /: ""
 
 -- | [@\/move@](https://pokeapi.co/docs/v2#moves)
 instance PokeApiListable Move NamedAPIResourceList NamedAPIResource where
@@ -1473,7 +1473,7 @@ instance FromJSON MoveAilment where
 
 -- | [@\/move-ailment\/{id or name}@](https://pokeapi.co/docs/v2#move-ailments)
 instance PokeApi MoveAilment where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-ailment" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-ailment" /: T.toLower iden /: ""
 
 -- | [@\/move-ailment@](https://pokeapi.co/docs/v2#move-ailments)
 instance PokeApiListable MoveAilment NamedAPIResourceList NamedAPIResource where
@@ -1494,7 +1494,7 @@ instance FromJSON MoveBattleStyle where
 
 -- | [@\/move-battle-style\/{id or name}@](https://pokeapi.co/docs/v2#move-battle-styles)
 instance PokeApi MoveBattleStyle where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-battle-style" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-battle-style" /: T.toLower iden /: ""
 
 -- | [@\/move-battle-style@](https://pokeapi.co/docs/v2#move-battle-styles)
 instance PokeApiListable MoveBattleStyle NamedAPIResourceList NamedAPIResource where
@@ -1516,7 +1516,7 @@ instance FromJSON MoveCategory where
 
 -- | [@\/move-category\/{id or name}@](https://pokeapi.co/docs/v2#move-categories)
 instance PokeApi MoveCategory where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-category" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-category" /: T.toLower iden /: ""
 
 -- | [@\/move-category@](https://pokeapi.co/docs/v2#move-categories)
 instance PokeApiListable MoveCategory NamedAPIResourceList NamedAPIResource where
@@ -1539,7 +1539,7 @@ instance FromJSON MoveDamageClass where
 
 -- | [@\/move-damage-class\/{id or name}@](https://pokeapi.co/docs/v2#move-damage-classes)
 instance PokeApi MoveDamageClass where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-damage-class" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-damage-class" /: T.toLower iden /: ""
 
 -- | [@\/move-damage-class@](https://pokeapi.co/docs/v2#move-damage-classes)
 instance PokeApiListable MoveDamageClass NamedAPIResourceList NamedAPIResource where
@@ -1562,7 +1562,7 @@ instance FromJSON MoveLearnMethod where
 
 -- | [@\/move-learn-method\/{id or name}@](https://pokeapi.co/docs/v2#move-learn-methods)
 instance PokeApi MoveLearnMethod where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-learn-method" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-learn-method" /: T.toLower iden /: ""
 
 -- | [@\/move-learn-method@](https://pokeapi.co/docs/v2#move-learn-methods)
 instance PokeApiListable MoveLearnMethod NamedAPIResourceList NamedAPIResource where
@@ -1585,7 +1585,7 @@ instance FromJSON MoveTarget where
 
 -- | [@\/move-target\/{id or name}@](https://pokeapi.co/docs/v2#move-targets)
 instance PokeApi MoveTarget where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-target" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "move-target" /: T.toLower iden /: ""
 
 -- | [@\/move-target@](https://pokeapi.co/docs/v2#move-targets)
 instance PokeApiListable MoveTarget NamedAPIResourceList NamedAPIResource where
@@ -1614,7 +1614,7 @@ instance FromJSON Ability where
 
 -- | [@\/ability\/{id or name}@](https://pokeapi.co/docs/v2#abilities)
 instance PokeApi Ability where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "ability" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "ability" /: T.toLower iden /: ""
 
 -- | [@\/ability@](https://pokeapi.co/docs/v2#abilities)
 instance PokeApiListable Ability NamedAPIResourceList NamedAPIResource where
@@ -1669,7 +1669,7 @@ instance FromJSON Characteristic where
 
 -- | [@\/characteristic\/{id}@](https://pokeapi.co/docs/v2#characteristics)
 instance PokeApi Characteristic where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "characteristic" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "characteristic" /: T.toLower iden /: ""
 
 -- | [@\/characteristic@](https://pokeapi.co/docs/v2#characteristics)
 instance PokeApiListable Characteristic APIResourceList APIResource where
@@ -1691,7 +1691,7 @@ instance FromJSON EggGroup where
 
 -- | [@\/egg-group\/{id or name}@](https://pokeapi.co/docs/v2#egg-groups)
 instance PokeApi EggGroup where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "egg-group" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "egg-group" /: T.toLower iden /: ""
 
 -- | [@\/egg-group@](https://pokeapi.co/docs/v2#egg-groups)
 instance PokeApiListable EggGroup NamedAPIResourceList NamedAPIResource where
@@ -1713,7 +1713,7 @@ instance FromJSON Gender where
 
 -- | [@\/gender\/{id or name}@](https://pokeapi.co/docs/v2#genders)
 instance PokeApi Gender where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "gender" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "gender" /: T.toLower iden /: ""
 
 -- | [@\/gender@](https://pokeapi.co/docs/v2#genders)
 instance PokeApiListable Gender NamedAPIResourceList NamedAPIResource where
@@ -1747,7 +1747,7 @@ instance FromJSON GrowthRate where
 
 -- | [@\/growth-rate\/{id or name}@](https://pokeapi.co/docs/v2#growth-rates)
 instance PokeApi GrowthRate where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "growth-rate" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "growth-rate" /: T.toLower iden /: ""
 
 -- | [@\/growth-rate@](https://pokeapi.co/docs/v2#growth-rates)
 instance PokeApiListable GrowthRate NamedAPIResourceList NamedAPIResource where
@@ -1784,7 +1784,7 @@ instance FromJSON Nature where
 
 -- | [@\/nature\/{id or name}@](https://pokeapi.co/docs/v2#natures)
 instance PokeApi Nature where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "nature" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "nature" /: T.toLower iden /: ""
 
 -- | [@\/nature@](https://pokeapi.co/docs/v2#natures)
 instance PokeApiListable Nature NamedAPIResourceList NamedAPIResource where
@@ -1827,7 +1827,7 @@ instance FromJSON PokeathlonStat where
 
 -- | [@\/pokeathlon-stat\/{id or name}@](https://pokeapi.co/docs/v2#pokeathlon-stats)
 instance PokeApi PokeathlonStat where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokeathlon-stat" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokeathlon-stat" /: T.toLower iden /: ""
 
 -- | [@\/pokeathlon-stat@](https://pokeapi.co/docs/v2#pokeathlon-stats)
 instance PokeApiListable PokeathlonStat NamedAPIResourceList NamedAPIResource where
@@ -1883,7 +1883,7 @@ instance FromJSON Pokemon where
 
 -- | [@\/pokemon\/{id or name}@](https://pokeapi.co/docs/v2#pokemon)
 instance PokeApi Pokemon where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon" /: T.toLower iden /: ""
 
 -- | [@\/pokemon@](https://pokeapi.co/docs/v2#pokemon)
 instance PokeApiListable Pokemon NamedAPIResourceList NamedAPIResource where
@@ -2012,7 +2012,7 @@ instance FromJSON PokemonLocationArea where
 
 -- | [@\/pokemon\/{id or name}\/encounters@](https://pokeapi.co/docs/v2#pokemon-location-areas)
 instance PokeApi PokemonLocationArea where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon" /: T.toLower iden /: "encounters"
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon" /: T.toLower iden /: "encounters" /: ""
 
 -- | <https://pokeapi.co/docs/v2#pokemon-location-areas>
 data LocationAreaEncounter = LocationAreaEncounter
@@ -2040,7 +2040,7 @@ instance FromJSON PokemonColor where
 
 -- | [@\/pokemon-color\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-colors)
 instance PokeApi PokemonColor where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-color" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-color" /: T.toLower iden /: ""
 
 -- | [@\/pokemon-color@](https://pokeapi.co/docs/v2#pokemon-colors)
 instance PokeApiListable PokemonColor NamedAPIResourceList NamedAPIResource where
@@ -2072,7 +2072,7 @@ instance FromJSON PokemonForm where
 
 -- | [@\/pokemon-form\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-forms)
 instance PokeApi PokemonForm where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-form" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-form" /: T.toLower iden /: ""
 
 -- | [@\/pokemon-form@](https://pokeapi.co/docs/v2#pokemon-forms)
 instance PokeApiListable PokemonForm NamedAPIResourceList NamedAPIResource where
@@ -2106,7 +2106,7 @@ instance FromJSON PokemonHabitat where
 
 -- | [@\/pokemon-habitat\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-habitats)
 instance PokeApi PokemonHabitat where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-habitat" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-habitat" /: T.toLower iden /: ""
 
 -- | [@\/pokemon-habitat@](https://pokeapi.co/docs/v2#pokemon-habitats)
 instance PokeApiListable PokemonHabitat NamedAPIResourceList NamedAPIResource where
@@ -2129,7 +2129,7 @@ instance FromJSON PokemonShape where
 
 -- | [@\/pokemon-shape\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-shapes)
 instance PokeApi PokemonShape where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-shape" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-shape" /: T.toLower iden /: ""
 
 -- | [@\/pokemon-shape@](https://pokeapi.co/docs/v2#pokemon-shapes)
 instance PokeApiListable PokemonShape NamedAPIResourceList NamedAPIResource where
@@ -2185,7 +2185,7 @@ instance FromJSON PokemonSpecies where
 
 -- | [@\/pokemon-species\/{id or name}@](https://pokeapi.co/docs/v2#pokemon-species)
 instance PokeApi PokemonSpecies where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-species" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "pokemon-species" /: T.toLower iden /: ""
 
 -- | [@\/pokemon-species@](https://pokeapi.co/docs/v2#pokemon-species)
 instance PokeApiListable PokemonSpecies NamedAPIResourceList NamedAPIResource where
@@ -2253,7 +2253,7 @@ instance FromJSON Stat where
 
 -- | [@\/stat\/{id or name}@](https://pokeapi.co/docs/v2#stats)
 instance PokeApi Stat where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "stat" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "stat" /: T.toLower iden /: ""
 
 -- | [@\/stat@](https://pokeapi.co/docs/v2#stats)
 instance PokeApiListable Stat NamedAPIResourceList NamedAPIResource where
@@ -2312,7 +2312,7 @@ instance FromJSON Type where
 
 -- | [@\/type\/{id or name}@](https://pokeapi.co/docs/v2#types)
 instance PokeApi Type where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "type" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "type" /: T.toLower iden /: ""
 
 -- | [@\/type@](https://pokeapi.co/docs/v2#types)
 instance PokeApiListable Type NamedAPIResourceList NamedAPIResource where
@@ -2372,7 +2372,7 @@ instance FromJSON Language where
 
 -- | [@\/language\/{id or name}@](https://pokeapi.co/docs/v2#languages)
 instance PokeApi Language where
-  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "language" /: T.toLower iden
+  get iden = getFromEndpoint $ \base -> base /: "api" /: "v2" /: "language" /: T.toLower iden /: ""
 
 -- | [@\/language@](https://pokeapi.co/docs/v2#languages)
 instance PokeApiListable Language NamedAPIResourceList NamedAPIResource where
